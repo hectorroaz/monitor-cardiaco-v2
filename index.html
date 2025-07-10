@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Monitor de Frecuencia Cardíaca BLE</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -12,27 +12,34 @@
       font-family: 'Inter', sans-serif;
       background: #111827;
       color: #f1f5f9;
+      overscroll-behavior: none;
     }
     .bg-dark { background: #111827 !important; }
     .circle-btn svg { width: 2.2rem; height: 2.2rem; }
     .circle-btn { width: 3.2rem; height: 3.2rem; display: flex; align-items: center; justify-content: center; }
     .timer-box { font-family: 'Inter', monospace; font-size: 2.4rem; font-weight: 700; color: #06b6d4; margin-bottom: 0.5em; }
-    /* --- Pantalla completa simple --- */
     .center-flex {
       width: 100vw;
-      height: 100vh;
+      height: 100dvh; /* viewport real en móviles */
+      min-height: 350px;
+      min-width: 240px;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 0 3vw;
     }
     .hr-box {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100vw; /* Portrait default */
-      height: 40vh; /* Portrait default */
-      flex-shrink: 0; flex-grow: 0; overflow: hidden;
+      width: 100vw;
+      height: 44vh;
+      min-height: 250px;
+      min-width: 200px;
       background: transparent;
+      overflow: hidden;
+      flex-shrink: 0; flex-grow: 0;
+      padding: 0 3vw;
     }
     .hr-number {
       display: block;
@@ -45,25 +52,39 @@
       margin: 0; padding: 0;
       width: 100%;
       height: auto;
-      font-size: 100px;
+      font-size: 120px; /* punto de partida */
+      min-font-size: 9vw;
+      transition: font-size 0.1s;
+      letter-spacing: -0.03em;
     }
     @media (orientation: landscape) {
-      .hr-box { width: 50vw; height: 100vh;}
-      .hr-number { text-align: right;}
+      .hr-box {
+        width: 50vw;
+        height: 100dvh;
+        min-width: 350px;
+        min-height: 450px;
+        padding-left: 3vw;
+        padding-right: 2vw;
+      }
+      .hr-number {
+        text-align: right;
+      }
+      .center-flex {
+        padding-left: 2vw; padding-right: 2vw;
+      }
     }
-    /* --- Pantalla completa stats --- */
     #statsLayout {
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100dvh;
       display: flex; flex-direction: column;
     }
     @media (orientation: landscape) {
       #statsLayout { flex-direction: row; }
       #statsRight {
-        width: 50vw; min-width: 260px; max-width: 460px;
+        width: 50vw; min-width: 260px; max-width: 500px;
         display: flex; flex-direction: column;
         align-items: flex-start; justify-content: center;
         padding-left: 3vw;
-        gap: 1.7vw;
+        gap: 2vw;
       }
     }
     @media (orientation: portrait) {
@@ -77,10 +98,9 @@
         margin-top: 3vh;
       }
     }
-    /* Stats, min/max, controles, timer bien espaciados */
     .stats-block { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3em;}
-    .stats-label { font-size: 1.05rem; color: #cbd5e1; }
-    .stats-value { font-size: 1.5rem; font-weight: 700; color: #fbbf24; }
+    .stats-label { font-size: 1.1rem; color: #cbd5e1; }
+    .stats-value { font-size: 1.6rem; font-weight: 700; color: #fbbf24; }
   </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-dark text-dark p-4">
@@ -92,24 +112,24 @@
   </header>
   <div class="border border-gray-800 rounded-lg p-6 bg-gray-800">
     <div class="flex justify-center items-center mb-4">
-      <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-label="Ícono de corazón"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+      <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
     </div>
     <div id="heartRateDisplay" class="text-7xl font-bold text-gray-50 tracking-tight select-none">--</div>
     <div class="text-lg text-gray-400">BPM</div>
     <p id="bluetoothStatus" class="mt-4 text-sm text-gray-400 h-5">Estado: Desconectado</p>
   </div>
   <div>
-    <button id="connectBluetooth" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400" aria-label="Conectar a sensor Bluetooth">
+    <button id="connectBluetooth" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400">
       Conectar a Sensor
     </button>
   </div>
   <div>
-    <button id="fullscreenBtn" class="w-full mt-3 bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700" aria-label="Pantalla completa">
+    <button id="fullscreenBtn" class="w-full mt-3 bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700">
       Pantalla Completa
     </button>
   </div>
   <div>
-    <button id="fullscreenStatsBtn" class="w-full mt-3 bg-yellow-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500" aria-label="Pantalla completa con estadísticas">
+    <button id="fullscreenStatsBtn" class="w-full mt-3 bg-yellow-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
       Pantalla Completa + Estadísticas
     </button>
   </div>
@@ -121,10 +141,10 @@
     <span id="fullscreenHeartRate" class="hr-number">--</span>
   </div>
   <div class="absolute bottom-8 right-8 flex flex-col gap-3">
-    <button id="switchToStats" class="bg-yellow-600 text-white p-4 rounded-full hover:bg-yellow-700 focus:outline-none" aria-label="Ver estadísticas" title="Cambiar a pantalla de estadísticas">
+    <button id="switchToStats" class="bg-yellow-600 text-white p-4 rounded-full hover:bg-yellow-700 focus:outline-none">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" fill="#fde68a"/><rect x="8" y="10" width="2" height="6" rx="1" fill="#b45309"/><rect x="14" y="7" width="2" height="9" rx="1" fill="#92400e"/></svg>
     </button>
-    <button id="exitFullscreenBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
+    <button id="exitFullscreenBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
@@ -147,21 +167,21 @@
       </div>
       <div class="timer-box" id="sessionTime">00:00</div>
       <div class="flex gap-4 mt-1">
-        <button id="sessionPlayBtn" class="circle-btn bg-green-600 hover:bg-green-700 focus:outline-none" aria-label="Iniciar sesión">
+        <button id="sessionPlayBtn" class="circle-btn bg-green-600 hover:bg-green-700 focus:outline-none">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#16a34a"/><polygon points="10,8 16,12 10,16" fill="#fff"/></svg>
         </button>
-        <button id="sessionPauseBtn" class="circle-btn bg-red-600 hover:bg-red-700 focus:outline-none" aria-label="Pausar sesión">
+        <button id="sessionPauseBtn" class="circle-btn bg-red-600 hover:bg-red-700 focus:outline-none">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#dc2626"/><rect x="9" y="8" width="2" height="8" rx="1" fill="#fff"/><rect x="13" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
         </button>
-        <button id="resetSessionBtn" class="circle-btn bg-gray-500 hover:bg-gray-700 focus:outline-none" aria-label="Reiniciar cronómetro">
+        <button id="resetSessionBtn" class="circle-btn bg-gray-500 hover:bg-gray-700 focus:outline-none">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#6b7280"/><path d="M12 8v4l3 3" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="#fff" stroke-width="2" fill="none"/></svg>
         </button>
       </div>
       <div class="flex flex-row gap-4 mt-8">
-        <button id="switchToSimple" class="circle-btn bg-yellow-600 hover:bg-yellow-700 focus:outline-none" aria-label="Solo número" title="Cambiar a pantalla de solo número">
+        <button id="switchToSimple" class="circle-btn bg-yellow-600 hover:bg-yellow-700 focus:outline-none">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><rect x="9" y="8" width="6" height="8" rx="2" fill="#fff"/></svg>
         </button>
-        <button id="exitFullscreenStatsBtn" class="circle-btn bg-gray-700 hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
+        <button id="exitFullscreenStatsBtn" class="circle-btn bg-gray-700 hover:bg-gray-900 focus:outline-none">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -305,7 +325,7 @@
     fullscreenContainer.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     if (document.documentElement.requestFullscreen) fullscreenContainer.requestFullscreen();
-    setTimeout(fitHeartRateSimpleFont, 100);
+    setTimeout(fitHeartRateSimpleFont, 120);
   }
   function exitFullScreenSimple() {
     fullscreenContainer.classList.add('hidden');
@@ -318,7 +338,7 @@
     fullscreenStatsContainer.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     if (document.documentElement.requestFullscreen) fullscreenStatsContainer.requestFullscreen();
-    setTimeout(fitHeartRateStatsFont, 100);
+    setTimeout(fitHeartRateStatsFont, 120);
   }
   function exitFullScreenStats() {
     fullscreenStatsContainer.classList.add('hidden');
@@ -377,7 +397,6 @@
     }
   }
   function resetSession() {
-    // SOLO reinicia el tiempo, no afecta HR, min ni max
     sessionRunning = false;
     sessionElapsed = 0;
     clearInterval(sessionInterval);
@@ -393,20 +412,20 @@
   sessionPauseBtn.addEventListener('click', pauseSession);
   resetSessionBtn.addEventListener('click', resetSession);
 
-  // Ajuste automático de fuente para HR Stats
+  // Ajuste automático de fuente para HR Stats (Samsung-friendly)
   function fitHeartRateStatsFont() {
     const box = document.querySelector('#statsLeft.hr-box');
     const num = document.getElementById('fullscreenHeartRateStats');
     if (!box || !num) return;
-
-    let min = 10, max = 1000;
+    let boxW = box.offsetWidth, boxH = box.offsetHeight;
+    let min = Math.floor(Math.min(boxH, boxW) * 0.30);
+    let max = Math.floor(Math.min(boxH, boxW) * 1.1);
     let finalSize = min;
     num.style.fontSize = max + "px";
     for (let size = max; size >= min; size -= 2) {
       num.style.fontSize = size + "px";
       const numRect = num.getBoundingClientRect();
-      const boxRect = box.getBoundingClientRect();
-      if (numRect.width <= boxRect.width * 0.98 && numRect.height <= boxRect.height * 0.98) {
+      if (numRect.width <= boxW * 0.99 && numRect.height <= boxH * 0.97) {
         finalSize = size;
         break;
       }
@@ -414,19 +433,20 @@
     num.style.fontSize = finalSize + "px";
   }
 
-  // Ajuste automático de fuente para modo simple
+  // Ajuste automático de fuente para modo simple (Samsung-friendly)
   function fitHeartRateSimpleFont() {
     const box = document.querySelector('#fullscreenContainer .center-flex');
     const num = document.getElementById('fullscreenHeartRate');
     if (!box || !num) return;
-    let min = 10, max = 1000;
+    let boxW = box.offsetWidth, boxH = box.offsetHeight;
+    let min = Math.floor(Math.min(boxH, boxW) * 0.32);
+    let max = Math.floor(Math.min(boxH, boxW) * 1.18);
     let finalSize = min;
     num.style.fontSize = max + "px";
     for (let size = max; size >= min; size -= 2) {
       num.style.fontSize = size + "px";
       const numRect = num.getBoundingClientRect();
-      const boxRect = box.getBoundingClientRect();
-      if (numRect.width <= boxRect.width * 0.98 && numRect.height <= boxRect.height * 0.98) {
+      if (numRect.width <= boxW * 0.99 && numRect.height <= boxH * 0.97) {
         finalSize = size;
         break;
       }
@@ -434,12 +454,10 @@
     num.style.fontSize = finalSize + "px";
   }
 
-  // Siempre que haya cambio de ventana o HR, ajustar fuente:
   window.addEventListener('resize', () => {
     fitHeartRateStatsFont();
     fitHeartRateSimpleFont();
   });
-  // Al inicio:
   fitHeartRateStatsFont();
   fitHeartRateSimpleFont();
 
