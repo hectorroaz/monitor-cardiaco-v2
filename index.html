@@ -10,7 +10,7 @@
         html, body { height: 100%; }
         body {
             font-family: 'Inter', sans-serif;
-            background: #111827 !important; /* fondo oscuro */
+            background: #111827 !important;
             color: #f1f5f9 !important;
         }
         .bg-dark { background: #111827 !important; }
@@ -35,8 +35,6 @@
             color: #f1f5f9 !important;
         }
         #fullscreenHeartRate, #fullscreenHeartRateStats {
-            width: 100vw;
-            max-width: 100vw;
             text-align: center;
             word-break: break-all;
             white-space: nowrap;
@@ -46,11 +44,15 @@
             padding: 0;
             overflow: hidden;
             display: block;
+            user-select: none;
         }
         .stats-label { font-size: 1.1rem; color: #cbd5e1; }
         .stats-value { font-size: 1.6rem; font-weight: 700; color: #fbbf24; }
         @media (orientation: landscape) {
-            #fullscreenHeartRate, #fullscreenHeartRateStats { font-size: 7vw !important; }
+            #fullscreenHeartRate { font-size: 18vw !important; }
+        }
+        @media (orientation: portrait) {
+            #fullscreenHeartRate { font-size: 18vw !important; }
         }
     </style>
 </head>
@@ -88,17 +90,24 @@
 
     <!-- Pantalla completa solo número -->
     <div id="fullscreenContainer" class="hidden fixed inset-0 bg-dark flex flex-col justify-center items-center z-50 p-0 m-0">
-        <div class="flex-1 flex items-center justify-center p-0 m-0 w-full">
-            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none select-none" style="font-size: 18vw;">--</span>
+        <div class="flex-1 flex items-center justify-center w-full h-full">
+            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none select-none w-full" style="font-size: 18vw;">--</span>
         </div>
-        <button id="exitFullscreenBtn" class="mb-10 bg-gray-700 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">Salir</button>
-        <button id="switchToStats" class="mb-4 bg-yellow-600 text-white px-6 py-3 rounded-xl text-xl hover:bg-yellow-700 focus:outline-none absolute right-5 top-5" aria-label="Ver estadísticas" title="Cambiar a pantalla de estadísticas">Estadísticas</button>
+        <div class="absolute bottom-8 right-8 flex flex-col gap-3">
+            <button id="switchToStats" class="bg-yellow-600 text-white p-4 rounded-full hover:bg-yellow-700 focus:outline-none" aria-label="Ver estadísticas" title="Cambiar a pantalla de estadísticas">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" fill="#fde68a"/><rect x="8" y="10" width="2" height="6" rx="1" fill="#b45309"/><rect x="14" y="7" width="2" height="9" rx="1" fill="#92400e"/></svg>
+            </button>
+            <button id="exitFullscreenBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
     </div>
 
     <!-- Pantalla completa con estadísticas -->
-    <div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark flex flex-col justify-center items-center z-50 p-0 m-0">
-        <div class="flex-1 flex flex-col items-center justify-center w-full">
-            <span id="fullscreenHeartRateStats" class="text-white font-extrabold leading-none select-none" style="font-size: 11vw;">--</span>
+    <div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark z-50 p-0 m-0 flex flex-col items-center justify-center">
+        <div id="statsFlex" class="w-full h-full flex flex-col items-center justify-center">
+            <!-- Vertical layout by default -->
+            <span id="fullscreenHeartRateStats" class="text-white font-extrabold leading-none select-none" style="font-size: 10vw;">--</span>
             <div class="flex gap-8 mt-6">
                 <div class="flex flex-col items-center">
                     <span class="stats-label">Mínimo</span>
@@ -110,17 +119,31 @@
                 </div>
             </div>
             <div class="flex flex-col items-center mt-8">
-                <span class="stats-label mb-1">Duración de sesión</span>
-                <span id="sessionTime" class="text-3xl font-mono font-bold text-cyan-400">00:00:00</span>
+                <span id="sessionTime" class="text-4xl font-mono font-bold text-cyan-400">00:00</span>
                 <div class="flex gap-6 mt-2">
-                    <button id="sessionPlayBtn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Iniciar sesión">Play</button>
-                    <button id="sessionPauseBtn" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Pausar sesión">Pausa</button>
-                    <button id="resetSessionBtn" class="bg-gray-500 hover:bg-gray-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Reiniciar sesión">Reiniciar</button>
+                    <button id="sessionPlayBtn" class="bg-green-600 hover:bg-green-700 p-4 rounded-full focus:outline-none" aria-label="Iniciar sesión">
+                        <!-- Play icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="8,5 19,12 8,19" fill="white"/></svg>
+                    </button>
+                    <button id="sessionPauseBtn" class="bg-red-600 hover:bg-red-700 p-4 rounded-full focus:outline-none" aria-label="Pausar sesión">
+                        <!-- Pause icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/></svg>
+                    </button>
+                    <button id="resetSessionBtn" class="bg-gray-500 hover:bg-gray-700 p-4 rounded-full focus:outline-none" aria-label="Reiniciar sesión">
+                        <!-- Reset icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6V2M12 2l-2 2m2-2l2 2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" fill="none"/></svg>
+                    </button>
                 </div>
             </div>
+            <div class="absolute bottom-8 right-8 flex flex-col gap-3">
+                <button id="switchToSimple" class="bg-gray-600 text-white p-4 rounded-full hover:bg-gray-700 focus:outline-none" aria-label="Solo número" title="Cambiar a pantalla de solo número">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><rect x="9" y="8" width="6" height="8" rx="2" fill="#fff"/></svg>
+                </button>
+                <button id="exitFullscreenStatsBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
         </div>
-        <button id="exitFullscreenStatsBtn" class="mb-10 bg-gray-700 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-900 focus:outline-none">Salir</button>
-        <button id="switchToSimple" class="mb-4 bg-gray-600 text-white px-6 py-3 rounded-xl text-xl hover:bg-gray-700 focus:outline-none absolute right-5 top-5" aria-label="Solo número" title="Cambiar a pantalla de solo número">Simple</button>
     </div>
 
     <script>
@@ -165,6 +188,7 @@
         const switchToStats = document.getElementById('switchToStats');
         const switchToSimple = document.getElementById('switchToSimple');
         const exitFullscreenStatsBtn = document.getElementById('exitFullscreenStatsBtn');
+        const statsFlex = document.getElementById('statsFlex');
 
         let heartRateCharacteristic = null;
         let bleDevice = null;
@@ -177,7 +201,7 @@
         let sessionElapsed = 0;
         let sessionRunning = false;
 
-        // -- BLE & BPM Logic --
+        // BLE & BPM Logic
         connectBluetoothBtn.addEventListener('click', async () => {
             if (!navigator.bluetooth) {
                 bluetoothStatusElem.textContent = 'Error: Web Bluetooth no es compatible.';
@@ -228,7 +252,6 @@
 
         function updateBpm(bpm) {
             if (bpm > 0) {
-                // Actualiza animación
                 const animationDuration = 60 / bpm;
                 heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
                 heartIconElem.classList.add('heartbeat-animation');
@@ -240,11 +263,8 @@
                 if (minBpm === null || bpm < minBpm) minBpm = bpm;
                 if (maxBpm === null || bpm > maxBpm) maxBpm = bpm;
             }
-            // Pantalla principal
             heartRateDisplayElem.textContent = bpm > 0 ? bpm : '--';
-            // Fullscreen Simple
             updateFullScreenHeartRate(bpm > 0 ? bpm : '--');
-            // Fullscreen Stats
             updateFullScreenStats(bpm > 0 ? bpm : '--');
         }
 
@@ -281,7 +301,8 @@
             fullscreenStatsContainer.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
             if (document.documentElement.requestFullscreen) fullscreenStatsContainer.requestFullscreen();
-            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRateStats), 200);
+            setTimeout(adaptStatsLayout, 50);
+            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRateStats), 250);
         }
         function exitFullScreenStats() {
             fullscreenStatsContainer.classList.add('hidden');
@@ -306,7 +327,6 @@
         exitFullscreenStatsBtn.addEventListener('click', exitFullScreenStats);
 
         document.addEventListener('fullscreenchange', () => {
-            // Cuando se sale de pantalla completa, oculta ambos contenedores
             if (!document.fullscreenElement) {
                 fullscreenContainer.classList.add('hidden');
                 fullscreenStatsContainer.classList.add('hidden');
@@ -318,7 +338,8 @@
         function fitHeartRateFontSize(el) {
             if (!el) return;
             el.style.fontSize = '';
-            const margin = 250; // espacio para controles
+            let margin = 250;
+            if (window.innerWidth > window.innerHeight) { margin = 80; }
             const boxW = window.innerWidth * 0.96;
             const boxH = (window.innerHeight - margin) * 0.98;
             el.style.fontSize = '180px';
@@ -329,9 +350,28 @@
             el.style.fontSize = (180 * scale) + 'px';
         }
         window.addEventListener('resize', () => {
+            adaptStatsLayout();
             if (!fullscreenContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRate);
             if (!fullscreenStatsContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRateStats);
         });
+
+        // Layout adaptable de estadísticas
+        function adaptStatsLayout() {
+            // Landscape = número left, stats y controles right
+            if (window.innerWidth > window.innerHeight) {
+                statsFlex.classList.remove('flex-col', 'items-center');
+                statsFlex.classList.add('flex-row', 'items-center', 'justify-center', 'gap-12');
+                fullscreenHeartRateStats.classList.add('mr-8');
+                fullscreenHeartRateStats.style.fontSize = "14vw";
+                statsFlex.children[1].classList.add('flex-col', 'justify-center', 'items-start', 'gap-2');
+                statsFlex.children[2].classList.add('flex-col', 'justify-center', 'items-start', 'gap-2');
+            } else {
+                statsFlex.classList.add('flex-col', 'items-center');
+                statsFlex.classList.remove('flex-row', 'justify-center', 'gap-12');
+                fullscreenHeartRateStats.classList.remove('mr-8');
+                fullscreenHeartRateStats.style.fontSize = "10vw";
+            }
+        }
 
         // Actualización UI Pantallas Completas
         function updateFullScreenHeartRate(bpm) {
@@ -351,16 +391,13 @@
         // --------- Sesión ---------
         function formatDuration(ms) {
             const total = Math.floor(ms / 1000);
-            const h = Math.floor(total / 3600);
-            const m = Math.floor((total % 3600) / 60);
+            const m = Math.floor(total / 60);
             const s = total % 60;
             return [
-                h.toString().padStart(2, '0'),
                 m.toString().padStart(2, '0'),
                 s.toString().padStart(2, '0')
             ].join(':');
         }
-
         function startSession() {
             if (!sessionRunning) {
                 sessionRunning = true;
@@ -379,7 +416,7 @@
             sessionRunning = false;
             sessionElapsed = 0;
             clearInterval(sessionInterval);
-            sessionTime.textContent = "00:00:00";
+            sessionTime.textContent = "00:00";
             minBpm = null;
             maxBpm = null;
             minBpmStats.textContent = '--';
@@ -395,12 +432,9 @@
         sessionPauseBtn.addEventListener('click', pauseSession);
         resetSessionBtn.addEventListener('click', resetSession);
 
-        // Reiniciar valores al entrar a una sesión nueva
         fullscreenStatsBtn.addEventListener('click', () => {
-            // Si se desea reiniciar la sesión al entrar en la pantalla stats, descomenta la siguiente línea:
-            // resetSession();
+            // resetSession(); // Actívalo si quieres que siempre se reinicie sesión al entrar a stats
         });
-
     </script>
 </body>
 </html>
