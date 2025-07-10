@@ -1,481 +1,352 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Monitor de Frecuencia Cardíaca BLE</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    html, body { height: 100%; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #111827;
-      color: #f1f5f9;
-      overscroll-behavior: none;
-    }
-    .bg-dark { background: #111827 !important; }
-    .circle-btn svg { width: 2.2rem; height: 2.2rem; }
-    .circle-btn { width: 3.2rem; height: 3.2rem; display: flex; align-items: center; justify-content: center; }
-    .timer-box { font-family: 'Inter', monospace; font-size: 2.4rem; font-weight: 700; color: #06b6d4; margin-bottom: 0.5em; }
-    .center-flex {
-      width: 100vw;
-      height: 100dvh;
-      min-height: 350px;
-      min-width: 240px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 3vw;
-    }
-    .hr-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100vw;
-      height: 44vh;
-      min-height: 250px;
-      min-width: 200px;
-      background: transparent;
-      overflow: hidden;
-      flex-shrink: 0; flex-grow: 0;
-      padding: 0 3vw;
-    }
-    .hr-number {
-      display: block;
-      font-weight: 800;
-      line-height: 1;
-      text-align: center;
-      color: #f1f5f9;
-      user-select: none;
-      white-space: nowrap;
-      margin: 0; padding: 0;
-      width: 100%;
-      height: auto;
-      font-size: 120px;
-      min-font-size: 9vw;
-      transition: font-size 0.1s;
-      letter-spacing: -0.03em;
-    }
-    @media (orientation: landscape) {
-      .hr-box {
-        width: 50vw;
-        height: 100dvh;
-        min-width: 350px;
-        min-height: 450px;
-        padding-left: 3vw;
-        padding-right: 2vw;
-      }
-      .hr-number {
-        text-align: right;
-      }
-      .center-flex {
-        padding-left: 2vw; padding-right: 2vw;
-      }
-    }
-    #statsLayout {
-      width: 100vw; height: 100dvh;
-      display: flex; flex-direction: column;
-    }
-    @media (orientation: landscape) {
-      #statsLayout { flex-direction: row; }
-      #statsRight {
-        width: 50vw; min-width: 260px; max-width: 500px;
-        display: flex; flex-direction: column;
-        align-items: flex-start; justify-content: center;
-        padding-left: 3vw;
-        gap: 2vw;
-      }
-    }
-    @media (orientation: portrait) {
-      #statsLayout { flex-direction: column; }
-      #statsRight {
-        width: 100vw;
-        min-width: 0; max-width: 100vw;
-        display: flex; flex-direction: row; flex-wrap: wrap;
-        justify-content: center; align-items: flex-start;
-        gap: 1.5vw;
-        margin-top: 3vh;
-      }
-    }
-    .stats-block { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3em;}
-    .stats-label { font-size: 1.1rem; color: #cbd5e1; }
-    .stats-value { font-size: 1.6rem; font-weight: 700; color: #fbbf24; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Frecuencia Cardíaca BLE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        button { transition: background-color 0.3s ease, transform 0.1s ease; }
+        button:active { transform: scale(0.98); }
+        @keyframes pulsate {
+            0% { transform: scale(1);}
+            50% { transform: scale(1.15);}
+            100% { transform: scale(1);}
+        }
+        .heartbeat-animation {
+            animation-name: pulsate;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+            animation-timing-function: ease-in-out;
+        }
+        #fullscreenContainer { background: #000 !important; padding:0!important; margin:0!important; }
+        #fullscreenHeartRate {
+            width: 100vw;
+            max-width: 100vw;
+            text-align: center;
+            word-break: break-all;
+            white-space: nowrap;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: block;
+        }
+        .bpm-label {
+            margin-top: 0;
+            font-size: 7vw;
+            line-height: 1;
+        }
+        @media (orientation: landscape) {
+            .bpm-label { font-size: 5vw !important; }
+        }
+        .timer-box {
+            font-family: 'Inter', monospace;
+            font-size: 2.7rem;
+            font-weight: 700;
+            color: #06b6d4;
+            margin-bottom: 0.6em;
+            letter-spacing: 0.04em;
+        }
+        .controls-row {
+            display: flex;
+            flex-direction: row;
+            gap: 1.4rem;
+            justify-content: center;
+            align-items: center;
+        }
+        .circle-btn {
+            width: 3.3rem;
+            height: 3.3rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            outline: none;
+            cursor: pointer;
+        }
+        .circle-btn svg { width: 2rem; height: 2rem; }
+        .btn-play { background: #16a34a; }
+        .btn-pause { background: #dc2626; }
+        .btn-reset { background: #6b7280; }
+        .btn-play:hover { background: #15803d; }
+        .btn-pause:hover { background: #991b1b; }
+        .btn-reset:hover { background: #334155; }
+    </style>
 </head>
-<body class="flex items-center justify-center min-h-screen bg-dark text-dark p-4">
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
-<main class="w-full max-w-md bg-gray-900 rounded-2xl shadow-lg p-8 space-y-6 text-center">
-  <header>
-    <h1 class="text-3xl font-bold text-gray-50">Monitor de Ritmo Cardíaco</h1>
-    <p class="text-gray-400 mt-2">Conéctate a tu banda de frecuencia cardíaca BLE.</p>
-  </header>
-  <div class="border border-gray-800 rounded-lg p-6 bg-gray-800">
-    <div class="flex justify-center items-center mb-4">
-      <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6 text-center">
+
+        <header>
+            <h1 class="text-3xl font-bold text-gray-900">Monitor de Ritmo Cardíaco</h1>
+            <p class="text-gray-600 mt-2">Conéctate a tu banda de frecuencia cardíaca BLE.</p>
+        </header>
+
+        <div class="border border-gray-200 rounded-lg p-6">
+            <div class="flex justify-center items-center mb-4">
+                <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+            </div>
+            <div id="heartRateDisplay" class="text-7xl font-bold text-gray-800 tracking-tight">--</div>
+            <div class="text-lg text-gray-500">BPM</div>
+            <p id="bluetoothStatus" class="mt-4 text-sm text-gray-600 h-5">Estado: Desconectado</p>
+        </div>
+
+        <div>
+            <button id="connectBluetooth" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400">
+                Conectar a Sensor
+            </button>
+        </div>
+
+        <div>
+            <button id="fullscreenBtn" class="w-full mt-3 bg-black text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                Pantalla Completa
+            </button>
+        </div>
     </div>
-    <div id="heartRateDisplay" class="text-7xl font-bold text-gray-50 tracking-tight select-none">--</div>
-    <div class="text-lg text-gray-400">BPM</div>
-    <p id="bluetoothStatus" class="mt-4 text-sm text-gray-400 h-5">Estado: Desconectado</p>
-  </div>
-  <div>
-    <button id="connectBluetooth" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400">
-      Conectar a Sensor
-    </button>
-  </div>
-  <div>
-    <button id="fullscreenBtn" class="w-full mt-3 bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700">
-      Pantalla Completa
-    </button>
-  </div>
-  <div>
-    <button id="fullscreenStatsBtn" class="w-full mt-3 bg-yellow-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-      Pantalla Completa + Estadísticas
-    </button>
-  </div>
-</main>
 
-<!-- Pantalla completa solo número -->
-<div id="fullscreenContainer" class="hidden fixed inset-0 bg-dark z-50">
-  <div class="center-flex">
-    <span id="fullscreenHeartRate" class="hr-number">--</span>
-  </div>
-  <div class="absolute bottom-8 right-8 flex flex-col gap-3">
-    <button id="switchToStats" class="bg-yellow-600 text-white p-4 rounded-full hover:bg-yellow-700 focus:outline-none">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" fill="#fde68a"/><rect x="8" y="10" width="2" height="6" rx="1" fill="#b45309"/><rect x="14" y="7" width="2" height="9" rx="1" fill="#92400e"/></svg>
-    </button>
-    <button id="exitFullscreenBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
-</div>
-
-<!-- Pantalla completa con estadísticas -->
-<div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark z-50">
-  <div id="statsLayout">
-    <div id="statsLeft" class="hr-box">
-      <span id="fullscreenHeartRateStats" class="hr-number">--</span>
+    <!-- Pantalla Completa -->
+    <div id="fullscreenContainer" class="hidden fixed inset-0 bg-black flex flex-col justify-between items-center z-50 p-0 m-0">
+        <div class="w-full flex-1 flex flex-col items-center justify-center p-0 m-0">
+            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none">--</span>
+            <!-- Cronómetro y controles debajo del número -->
+            <div class="flex flex-col items-center justify-center mt-8">
+                <span class="timer-box" id="sessionTime">00:00</span>
+                <div class="controls-row mt-2">
+                    <button id="sessionPlayBtn" class="circle-btn btn-play" title="Iniciar">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#16a34a"/><polygon points="10,8 16,12 10,16" fill="#fff"/></svg>
+                    </button>
+                    <button id="sessionPauseBtn" class="circle-btn btn-pause" title="Pausar">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#dc2626"/><rect x="9" y="8" width="2" height="8" rx="1" fill="#fff"/><rect x="13" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
+                    </button>
+                    <button id="resetSessionBtn" class="circle-btn btn-reset" title="Reiniciar">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#6b7280"/><path d="M12 8v4l3 3" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="#fff" stroke-width="2" fill="none"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="w-full flex flex-col items-center mb-8">
+            <span class="bpm-label text-gray-300">BPM</span>
+            <button id="exitFullscreenBtn" class="mt-6 bg-gray-800 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-900">Salir</button>
+        </div>
     </div>
-    <div id="statsRight">
-      <div class="stats-block">
-        <span class="stats-label">Mínimo</span>
-        <span id="minBpmStats" class="stats-value">--</span>
-      </div>
-      <div class="stats-block">
-        <span class="stats-label">Máximo</span>
-        <span id="maxBpmStats" class="stats-value">--</span>
-      </div>
-      <div class="timer-box" id="sessionTime">00:00</div>
-      <div class="flex gap-4 mt-1">
-        <button id="sessionPlayBtn" class="circle-btn bg-green-600 hover:bg-green-700 focus:outline-none">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#16a34a"/><polygon points="10,8 16,12 10,16" fill="#fff"/></svg>
-        </button>
-        <button id="sessionPauseBtn" class="circle-btn bg-red-600 hover:bg-red-700 focus:outline-none">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#dc2626"/><rect x="9" y="8" width="2" height="8" rx="1" fill="#fff"/><rect x="13" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
-        </button>
-        <button id="resetSessionBtn" class="circle-btn bg-gray-500 hover:bg-gray-700 focus:outline-none">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#6b7280"/><path d="M12 8v4l3 3" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="#fff" stroke-width="2" fill="none"/></svg>
-        </button>
-      </div>
-      <div class="flex flex-row gap-4 mt-8">
-        <button id="switchToSimple" class="circle-btn bg-yellow-600 hover:bg-yellow-700 focus:outline-none">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><rect x="9" y="8" width="6" height="8" rx="2" fill="#fff"/></svg>
-        </button>
-        <button id="exitFullscreenStatsBtn" class="circle-btn bg-gray-700 hover:bg-gray-900 focus:outline-none">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<script>
-  // Wake Lock
-  let wakeLock = null;
-  async function requestWakeLock() {
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-  }
-  document.addEventListener('visibilitychange', () => { if (wakeLock && document.visibilityState === 'visible') requestWakeLock(); });
+    <script>
+        // Wake Lock
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock was released');
+                    });
+                    console.log('Wake Lock is active');
+                }
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
 
-  // UI
-  const connectBluetoothBtn = document.getElementById('connectBluetooth');
-  const bluetoothStatusElem = document.getElementById('bluetoothStatus');
-  const heartRateDisplayElem = document.getElementById('heartRateDisplay');
-  const heartIconElem = document.getElementById('heartIcon');
-  const fullscreenBtn = document.getElementById('fullscreenBtn');
-  const fullscreenContainer = document.getElementById('fullscreenContainer');
-  const fullscreenHeartRate = document.getElementById('fullscreenHeartRate');
-  const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
-  const fullscreenStatsBtn = document.getElementById('fullscreenStatsBtn');
-  const fullscreenStatsContainer = document.getElementById('fullscreenStatsContainer');
-  const fullscreenHeartRateStats = document.getElementById('fullscreenHeartRateStats');
-  const minBpmStats = document.getElementById('minBpmStats');
-  const maxBpmStats = document.getElementById('maxBpmStats');
-  const sessionTime = document.getElementById('sessionTime');
-  const sessionPlayBtn = document.getElementById('sessionPlayBtn');
-  const sessionPauseBtn = document.getElementById('sessionPauseBtn');
-  const resetSessionBtn = document.getElementById('resetSessionBtn');
-  const switchToStats = document.getElementById('switchToStats');
-  const switchToSimple = document.getElementById('switchToSimple');
-  const exitFullscreenStatsBtn = document.getElementById('exitFullscreenStatsBtn');
+        // UI Elements
+        const connectBluetoothBtn = document.getElementById('connectBluetooth');
+        const bluetoothStatusElem = document.getElementById('bluetoothStatus');
+        const heartRateDisplayElem = document.getElementById('heartRateDisplay');
+        const heartIconElem = document.getElementById('heartIcon');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenContainer = document.getElementById('fullscreenContainer');
+        const fullscreenHeartRate = document.getElementById('fullscreenHeartRate');
+        const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+        // Cronómetro
+        const sessionTime = document.getElementById('sessionTime');
+        const sessionPlayBtn = document.getElementById('sessionPlayBtn');
+        const sessionPauseBtn = document.getElementById('sessionPauseBtn');
+        const resetSessionBtn = document.getElementById('resetSessionBtn');
 
-  let heartRateCharacteristic = null;
-  let bleDevice = null;
-  let minBpm = null;
-  let maxBpm = null;
+        let heartRateCharacteristic = null;
+        let bleDevice = null;
 
-  // Sesión (contador)
-  let sessionInterval = null;
-  let sessionStart = null;
-  let sessionElapsed = 0;
-  let sessionRunning = false;
+        // ---- Cronómetro ----
+        let sessionInterval = null;
+        let sessionStart = null;
+        let sessionElapsed = 0;
+        let sessionRunning = false;
 
-  // Estado para mantener HR "real" a mostrar
-  window.__latestHR = '--';
-  window.__latestHRStats = '--';
+        function formatDuration(ms) {
+            const total = Math.floor(ms / 1000);
+            const m = Math.floor(total / 60);
+            const s = total % 60;
+            return [
+                m.toString().padStart(2, '0'),
+                s.toString().padStart(2, '0')
+            ].join(':');
+        }
+        function startSession() {
+            if (!sessionRunning) {
+                sessionRunning = true;
+                sessionStart = Date.now() - sessionElapsed;
+                sessionInterval = setInterval(updateSessionTime, 1000);
+            }
+        }
+        function pauseSession() {
+            if (sessionRunning) {
+                sessionRunning = false;
+                sessionElapsed = Date.now() - sessionStart;
+                clearInterval(sessionInterval);
+            }
+        }
+        function resetSession() {
+            sessionRunning = false;
+            sessionElapsed = 0;
+            clearInterval(sessionInterval);
+            sessionTime.textContent = "00:00";
+        }
+        function updateSessionTime() {
+            if (sessionRunning) {
+                sessionElapsed = Date.now() - sessionStart;
+            }
+            sessionTime.textContent = formatDuration(sessionElapsed);
+        }
+        sessionPlayBtn.addEventListener('click', startSession);
+        sessionPauseBtn.addEventListener('click', pauseSession);
+        resetSessionBtn.addEventListener('click', resetSession);
 
-  // BLE & BPM Logic
-  connectBluetoothBtn.addEventListener('click', async () => {
-    if (!navigator.bluetooth) {
-      bluetoothStatusElem.textContent = 'Error: Web Bluetooth no es compatible.';
-      bluetoothStatusElem.classList.add('text-red-400');
-      return;
-    }
-    try {
-      bluetoothStatusElem.textContent = 'Buscando sensor...';
-      connectBluetoothBtn.disabled = true;
-      bleDevice = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['heart_rate'] }],
-        optionalServices: ['device_information']
-      });
-      bluetoothStatusElem.textContent = `Conectando a ${bleDevice.name || 'dispositivo'}...`;
-      bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-      const server = await bleDevice.gatt.connect();
-      bluetoothStatusElem.textContent = 'Obteniendo servicio...';
-      const service = await server.getPrimaryService('heart_rate');
-      heartRateCharacteristic = await service.getCharacteristic('heart_rate_measurement');
-      await heartRateCharacteristic.startNotifications();
-      bluetoothStatusElem.textContent = '¡Conectado! Escuchando latidos...';
-      bluetoothStatusElem.classList.remove('text-red-400');
-      bluetoothStatusElem.classList.add('text-green-400');
-      requestWakeLock();
-      heartRateCharacteristic.addEventListener('characteristicvaluechanged', handleHeartRateNotification);
-    } catch (error) {
-      if (error.message && error.message.includes('User cancelled')) {
-        bluetoothStatusElem.textContent = 'Conexión cancelada por el usuario.';
-      } else {
-        bluetoothStatusElem.textContent = `Error: ${error.message}`;
-      }
-      bluetoothStatusElem.classList.add('text-red-400');
-      connectBluetoothBtn.disabled = false;
-    }
-  });
+        // ---- BLE + BPM logic ----
+        connectBluetoothBtn.addEventListener('click', async () => {
+            if (!navigator.bluetooth) {
+                bluetoothStatusElem.textContent = 'Error: Web Bluetooth no es compatible.';
+                bluetoothStatusElem.classList.add('text-red-600');
+                return;
+            }
+            try {
+                bluetoothStatusElem.textContent = 'Buscando sensor...';
+                connectBluetoothBtn.disabled = true;
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['heart_rate'] }],
+                    optionalServices: ['device_information']
+                });
+                bluetoothStatusElem.textContent = `Conectando a ${bleDevice.name || 'dispositivo'}...`;
+                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                const server = await bleDevice.gatt.connect();
+                bluetoothStatusElem.textContent = 'Obteniendo servicio...';
+                const service = await server.getPrimaryService('heart_rate');
+                heartRateCharacteristic = await service.getCharacteristic('heart_rate_measurement');
+                await heartRateCharacteristic.startNotifications();
+                bluetoothStatusElem.textContent = '¡Conectado! Escuchando latidos...';
+                bluetoothStatusElem.classList.add('text-green-600');
+                requestWakeLock();
+                heartRateCharacteristic.addEventListener('characteristicvaluechanged', handleHeartRateNotification);
+            } catch (error) {
+                console.error('Bluetooth Error:', error);
+                bluetoothStatusElem.textContent = `Error: ${error.message}`;
+                bluetoothStatusElem.classList.add('text-red-600');
+                connectBluetoothBtn.disabled = false;
+            }
+        });
 
-  function handleHeartRateNotification(event) {
-    const value = event.target.value;
-    const heartRate = parseHeartRate(value);
-    updateBpm(heartRate);
-  }
+        function handleHeartRateNotification(event) {
+            const value = event.target.value;
+            const heartRate = parseHeartRate(value);
+            heartRateDisplayElem.textContent = heartRate;
+            updateFullScreenHeartRate(heartRate);
+            if (heartRate > 0) {
+                const animationDuration = 60 / heartRate;
+                heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
+                heartIconElem.classList.add('heartbeat-animation');
+            } else {
+                heartIconElem.classList.remove('heartbeat-animation');
+            }
+        }
 
-  function parseHeartRate(value) {
-    const flags = value.getUint8(0);
-    const rate16Bits = (flags & 0x1) !== 0;
-    return rate16Bits ? value.getUint16(1, true) : value.getUint8(1);
-  }
+        function parseHeartRate(value) {
+            const flags = value.getUint8(0);
+            const rate16Bits = (flags & 0x1) !== 0;
+            if (rate16Bits) {
+                return value.getUint16(1, true);
+            } else {
+                return value.getUint8(1);
+            }
+        }
 
-  function updateBpm(bpm) {
-    // Actualizar estado global de HR
-    window.__latestHR = bpm > 0 ? bpm : '--';
-    window.__latestHRStats = bpm > 0 ? bpm : '--';
-    if (bpm > 0) {
-      const animationDuration = 60 / bpm;
-      heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
-      heartIconElem.classList.add('heartbeat-animation');
-    } else {
-      heartIconElem.classList.remove('heartbeat-animation');
-    }
-    if (bpm > 0) {
-      if (minBpm === null || bpm < minBpm) minBpm = bpm;
-      if (maxBpm === null || bpm > maxBpm) maxBpm = bpm;
-    }
-    heartRateDisplayElem.textContent = bpm > 0 ? bpm : '--';
-    // El ajuste se hace por función, el valor visual por variable global
-    fitHeartRateStatsFont();
-    fitHeartRateSimpleFont();
-    minBpmStats.textContent = minBpm !== null ? minBpm : '--';
-    maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
-  }
+        function onDisconnected() {
+            bluetoothStatusElem.textContent = 'Dispositivo desconectado.';
+            bluetoothStatusElem.classList.remove('text-green-600');
+            bluetoothStatusElem.classList.add('text-red-600');
+            heartRateDisplayElem.textContent = '--';
+            heartIconElem.classList.remove('heartbeat-animation');
+            connectBluetoothBtn.disabled = false;
+            if (heartRateCharacteristic) {
+                heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
+                heartRateCharacteristic = null;
+            }
+            updateFullScreenHeartRate('--');
+        }
 
-  function onDisconnected() {
-    bluetoothStatusElem.textContent = 'Dispositivo desconectado.';
-    bluetoothStatusElem.classList.remove('text-green-400');
-    bluetoothStatusElem.classList.add('text-red-400');
-    heartRateDisplayElem.textContent = '--';
-    heartIconElem.classList.remove('heartbeat-animation');
-    connectBluetoothBtn.disabled = false;
-    if (heartRateCharacteristic) {
-      heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
-      heartRateCharacteristic = null;
-    }
-    window.__latestHR = '--';
-    window.__latestHRStats = '--';
-    fitHeartRateStatsFont();
-    fitHeartRateSimpleFont();
-    minBpmStats.textContent = '--';
-    maxBpmStats.textContent = '--';
-  }
+        // --- Pantalla Completa ---
+        function enterFullScreen() {
+            fullscreenContainer.classList.remove('hidden');
+            if (document.documentElement.requestFullscreen) {
+                fullscreenContainer.requestFullscreen();
+            }
+            setTimeout(fitHeartRateFontSize, 200);
+        }
+        function exitFullScreen() {
+            fullscreenContainer.classList.add('hidden');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+        fullscreenBtn.addEventListener('click', enterFullScreen);
+        exitFullscreenBtn.addEventListener('click', exitFullScreen);
 
-  // Pantalla completa: solo número
-  function enterFullScreenSimple() {
-    fullscreenContainer.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    if (document.documentElement.requestFullscreen) fullscreenContainer.requestFullscreen();
-    setTimeout(fitHeartRateSimpleFont, 120);
-  }
-  function exitFullScreenSimple() {
-    fullscreenContainer.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    if (document.fullscreenElement) document.exitFullscreen();
-  }
+        // Dynamic font size
+        function fitHeartRateFontSize() {
+            const el = fullscreenHeartRate;
+            if (!el) return;
+            el.style.fontSize = '';
+            const margin = 260; // espacio para BPM y controles
+            const boxW = window.innerWidth * 0.98;
+            const boxH = (window.innerHeight - margin) * 0.98;
+            el.style.fontSize = '200px';
+            const rect = el.getBoundingClientRect();
+            const scaleW = boxW / rect.width;
+            const scaleH = boxH / rect.height;
+            const scale = Math.min(scaleW, scaleH, 1.2); // Limite para evitar overflow
+            const newFontSize = 200 * scale;
+            el.style.fontSize = newFontSize + 'px';
+        }
+        function updateFullScreenHeartRate(bpm) {
+            if (!fullscreenContainer.classList.contains('hidden')) {
+                fullscreenHeartRate.textContent = bpm;
+                fitHeartRateFontSize();
+            }
+        }
+        window.addEventListener('resize', () => {
+            if (!fullscreenContainer.classList.contains('hidden')) {
+                fitHeartRateFontSize();
+            }
+        });
 
-  // Pantalla completa: estadísticas
-  function enterFullScreenStats() {
-    fullscreenStatsContainer.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    if (document.documentElement.requestFullscreen) fullscreenStatsContainer.requestFullscreen();
-    setTimeout(fitHeartRateStatsFont, 120);
-  }
-  function exitFullScreenStats() {
-    fullscreenStatsContainer.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    if (document.fullscreenElement) document.exitFullscreen();
-  }
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                fullscreenContainer.classList.add('hidden');
+            } else {
+                setTimeout(fitHeartRateFontSize, 100);
+            }
+        });
 
-  // Alternar entre pantallas completas
-  switchToStats.addEventListener('click', () => {
-    fullscreenContainer.classList.add('hidden');
-    enterFullScreenStats();
-  });
-  switchToSimple.addEventListener('click', () => {
-    fullscreenStatsContainer.classList.add('hidden');
-    enterFullScreenSimple();
-  });
-
-  // Fullscreen listeners
-  fullscreenBtn.addEventListener('click', enterFullScreenSimple);
-  exitFullscreenBtn.addEventListener('click', exitFullScreenSimple);
-  fullscreenStatsBtn.addEventListener('click', enterFullScreenStats);
-  exitFullscreenStatsBtn.addEventListener('click', exitFullScreenStats);
-
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) {
-      fullscreenContainer.classList.add('hidden');
-      fullscreenStatsContainer.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
-    }
-    fitHeartRateStatsFont();
-    fitHeartRateSimpleFont();
-  });
-
-  // --------- Sesión ---------
-  function formatDuration(ms) {
-    const total = Math.floor(ms / 1000);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return [
-      m.toString().padStart(2, '0'),
-      s.toString().padStart(2, '0')
-    ].join(':');
-  }
-  function startSession() {
-    if (!sessionRunning) {
-      sessionRunning = true;
-      sessionStart = Date.now() - sessionElapsed;
-      sessionInterval = setInterval(updateSessionTime, 1000);
-    }
-  }
-  function pauseSession() {
-    if (sessionRunning) {
-      sessionRunning = false;
-      sessionElapsed = Date.now() - sessionStart;
-      clearInterval(sessionInterval);
-    }
-  }
-  function resetSession() {
-    sessionRunning = false;
-    sessionElapsed = 0;
-    clearInterval(sessionInterval);
-    sessionTime.textContent = "00:00";
-  }
-  function updateSessionTime() {
-    if (sessionRunning) {
-      sessionElapsed = Date.now() - sessionStart;
-    }
-    sessionTime.textContent = formatDuration(sessionElapsed);
-  }
-  sessionPlayBtn.addEventListener('click', startSession);
-  sessionPauseBtn.addEventListener('click', pauseSession);
-  resetSessionBtn.addEventListener('click', resetSession);
-
-  // Ajuste automático de fuente para HR Stats con prototipo "188"
-  function fitHeartRateStatsFont() {
-    const box = document.querySelector('#statsLeft.hr-box');
-    const num = document.getElementById('fullscreenHeartRateStats');
-    if (!box || !num) return;
-    const realValue = window.__latestHRStats || '--';
-    const proto = '188';
-    // Medir el tamaño con el prototipo
-    num.textContent = proto;
-    let boxW = box.offsetWidth, boxH = box.offsetHeight;
-    let min = Math.floor(Math.min(boxH, boxW) * 0.30);
-    let max = Math.floor(Math.min(boxH, boxW) * 1.1);
-    let finalSize = min;
-    num.style.fontSize = max + "px";
-    for (let size = max; size >= min; size -= 2) {
-      num.style.fontSize = size + "px";
-      const numRect = num.getBoundingClientRect();
-      if (numRect.width <= boxW * 0.99 && numRect.height <= boxH * 0.97) {
-        finalSize = size;
-        break;
-      }
-    }
-    num.style.fontSize = finalSize + "px";
-    // Ahora sí, mostrar el HR real
-    num.textContent = realValue;
-  }
-
-  // Ajuste automático de fuente para modo simple
-  function fitHeartRateSimpleFont() {
-    const box = document.querySelector('#fullscreenContainer .center-flex');
-    const num = document.getElementById('fullscreenHeartRate');
-    if (!box || !num) return;
-    const realValue = window.__latestHR || '--';
-    const proto = '188';
-    num.textContent = proto;
-    let boxW = box.offsetWidth, boxH = box.offsetHeight;
-    let min = Math.floor(Math.min(boxH, boxW) * 0.32);
-    let max = Math.floor(Math.min(boxH, boxW) * 1.18);
-    let finalSize = min;
-    num.style.fontSize = max + "px";
-    for (let size = max; size >= min; size -= 2) {
-      num.style.fontSize = size + "px";
-      const numRect = num.getBoundingClientRect();
-      if (numRect.width <= boxW * 0.99 && numRect.height <= boxH * 0.97) {
-        finalSize = size;
-        break;
-      }
-    }
-    num.style.fontSize = finalSize + "px";
-    num.textContent = realValue;
-  }
-
-  window.addEventListener('resize', () => {
-    fitHeartRateStatsFont();
-    fitHeartRateSimpleFont();
-  });
-  fitHeartRateStatsFont();
-  fitHeartRateSimpleFont();
-
-</script>
+        updateFullScreenHeartRate('--');
+    </script>
 </body>
 </html>
