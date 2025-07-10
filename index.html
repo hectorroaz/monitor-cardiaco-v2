@@ -3,206 +3,404 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lectura Extrema BLE Huawei Watch</title>
+    <title>Monitor de Frecuencia Cardíaca BLE</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; }
-        .log { font-size: 0.95em; font-family: monospace; background: #18181b; color: #e5e7eb; max-height: 200px; overflow-y: auto; padding: 1em; border-radius: 10px;}
+        html, body { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #111827 !important; /* fondo oscuro */
+            color: #f1f5f9 !important;
+        }
+        .bg-dark { background: #111827 !important; }
+        .text-dark { color: #f1f5f9 !important; }
+        button { transition: background-color 0.3s, transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        @keyframes pulsate {
+            0% { transform: scale(1);}
+            50% { transform: scale(1.15);}
+            100% { transform: scale(1);}
+        }
+        .heartbeat-animation {
+            animation-name: pulsate;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+            animation-timing-function: ease-in-out;
+        }
+        #fullscreenContainer, #fullscreenStatsContainer {
+            background: #111827 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            color: #f1f5f9 !important;
+        }
+        #fullscreenHeartRate, #fullscreenHeartRateStats {
+            width: 100vw;
+            max-width: 100vw;
+            text-align: center;
+            word-break: break-all;
+            white-space: nowrap;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: block;
+        }
+        .stats-label { font-size: 1.1rem; color: #cbd5e1; }
+        .stats-value { font-size: 1.6rem; font-weight: 700; color: #fbbf24; }
+        @media (orientation: landscape) {
+            #fullscreenHeartRate, #fullscreenHeartRateStats { font-size: 7vw !important; }
+        }
     </style>
 </head>
-<body class="bg-black min-h-screen flex flex-col items-center justify-center p-6">
+<body class="flex items-center justify-center min-h-screen bg-dark text-dark p-4">
 
-    <div class="w-full max-w-lg bg-gray-900 rounded-2xl shadow-lg p-8 space-y-6 text-center">
-        <h1 class="text-2xl font-bold text-white mb-2">Lectura Extrema BLE</h1>
-        <p class="text-gray-400 mb-2">Lee todos los servicios disponibles (Huawei Watch BLE)</p>
-        <div class="border border-gray-700 rounded-lg p-5 bg-gray-800 space-y-2">
-            <div>
-                <span class="font-semibold text-gray-300">Heart Rate: </span>
-                <span id="heartRate" class="text-3xl text-pink-400 font-extrabold">--</span> <span class="text-gray-400">BPM</span>
+    <main class="w-full max-w-md bg-gray-900 rounded-2xl shadow-lg p-8 space-y-6 text-center">
+        <header>
+            <h1 class="text-3xl font-bold text-gray-50">Monitor de Ritmo Cardíaco</h1>
+            <p class="text-gray-400 mt-2">Conéctate a tu banda de frecuencia cardíaca BLE.</p>
+        </header>
+        <div class="border border-gray-800 rounded-lg p-6 bg-gray-800">
+            <div class="flex justify-center items-center mb-4">
+                <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-label="Ícono de corazón"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
             </div>
-            <div>
-                <span class="font-semibold text-gray-300">Batería: </span>
-                <span id="batteryLevel" class="text-2xl text-green-300 font-bold">--</span> <span class="text-gray-400">%</span>
-            </div>
+            <div id="heartRateDisplay" class="text-7xl font-bold text-gray-50 tracking-tight select-none">--</div>
+            <div class="text-lg text-gray-400">BPM</div>
+            <p id="bluetoothStatus" class="mt-4 text-sm text-gray-400 h-5">Estado: Desconectado</p>
         </div>
         <div>
-            <button id="connectBtn" class="w-full bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-600">
-                Conectar y Leer Todo
+            <button id="connectBluetooth" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400" aria-label="Conectar a sensor Bluetooth">
+                Conectar a Sensor
             </button>
         </div>
-        <div id="status" class="mt-2 text-sm text-gray-300"></div>
-        <div class="mt-5 text-left">
-            <div class="text-gray-400 mb-1">Log de datos crudos recibidos:</div>
-            <div id="logRaw" class="log"></div>
+        <div>
+            <button id="fullscreenBtn" class="w-full mt-3 bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700" aria-label="Pantalla completa">
+                Pantalla Completa
+            </button>
         </div>
+        <div>
+            <button id="fullscreenStatsBtn" class="w-full mt-3 bg-yellow-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500" aria-label="Pantalla completa con estadísticas">
+                Pantalla Completa + Estadísticas
+            </button>
+        </div>
+    </main>
+
+    <!-- Pantalla completa solo número -->
+    <div id="fullscreenContainer" class="hidden fixed inset-0 bg-dark flex flex-col justify-center items-center z-50 p-0 m-0">
+        <div class="flex-1 flex items-center justify-center p-0 m-0 w-full">
+            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none select-none" style="font-size: 18vw;">--</span>
+        </div>
+        <button id="exitFullscreenBtn" class="mb-10 bg-gray-700 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">Salir</button>
+        <button id="switchToStats" class="mb-4 bg-yellow-600 text-white px-6 py-3 rounded-xl text-xl hover:bg-yellow-700 focus:outline-none absolute right-5 top-5" aria-label="Ver estadísticas" title="Cambiar a pantalla de estadísticas">Estadísticas</button>
+    </div>
+
+    <!-- Pantalla completa con estadísticas -->
+    <div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark flex flex-col justify-center items-center z-50 p-0 m-0">
+        <div class="flex-1 flex flex-col items-center justify-center w-full">
+            <span id="fullscreenHeartRateStats" class="text-white font-extrabold leading-none select-none" style="font-size: 11vw;">--</span>
+            <div class="flex gap-8 mt-6">
+                <div class="flex flex-col items-center">
+                    <span class="stats-label">Mínimo</span>
+                    <span id="minBpmStats" class="stats-value">--</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="stats-label">Máximo</span>
+                    <span id="maxBpmStats" class="stats-value">--</span>
+                </div>
+            </div>
+            <div class="flex flex-col items-center mt-8">
+                <span class="stats-label mb-1">Duración de sesión</span>
+                <span id="sessionTime" class="text-3xl font-mono font-bold text-cyan-400">00:00:00</span>
+                <div class="flex gap-6 mt-2">
+                    <button id="sessionPlayBtn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Iniciar sesión">Play</button>
+                    <button id="sessionPauseBtn" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Pausar sesión">Pausa</button>
+                    <button id="resetSessionBtn" class="bg-gray-500 hover:bg-gray-700 px-6 py-2 rounded-xl text-white font-semibold text-xl focus:outline-none" aria-label="Reiniciar sesión">Reiniciar</button>
+                </div>
+            </div>
+        </div>
+        <button id="exitFullscreenStatsBtn" class="mb-10 bg-gray-700 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-900 focus:outline-none">Salir</button>
+        <button id="switchToSimple" class="mb-4 bg-gray-600 text-white px-6 py-3 rounded-xl text-xl hover:bg-gray-700 focus:outline-none absolute right-5 top-5" aria-label="Solo número" title="Cambiar a pantalla de solo número">Simple</button>
     </div>
 
     <script>
-        const connectBtn = document.getElementById('connectBtn');
-        const status = document.getElementById('status');
-        const logRaw = document.getElementById('logRaw');
-        const heartRateElem = document.getElementById('heartRate');
-        const batteryLevelElem = document.getElementById('batteryLevel');
-
-        let logLines = [];
-
-        function appendLog(text) {
-            logLines.push(text);
-            if (logLines.length > 80) logLines.shift();
-            logRaw.innerText = logLines.join('\n');
-        }
-
-        connectBtn.onclick = async () => {
-            connectBtn.disabled = true;
-            status.textContent = 'Buscando dispositivo BLE...';
-
+        // Wake Lock
+        let wakeLock = null;
+        async function requestWakeLock() {
             try {
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: ['heart_rate'] }],
-                    optionalServices: [
-                        'battery_service', 
-                        0x3802, 
-                        0xfe86,
-                        'device_information',
-                        'generic_access',
-                        'generic_attribute',
-                        '0000180f-0000-1000-8000-00805f9b34fb', // battery_service
-                        '0000180d-0000-1000-8000-00805f9b34fb', // heart_rate
-                        'cc353442-be58-4ea2-876e-11d8d6976366'
-                    ]
-                });
-
-                status.textContent = 'Conectando...';
-                const server = await device.gatt.connect();
-
-                // ====== Heart Rate ======
-                try {
-                    const hrService = await server.getPrimaryService('heart_rate');
-                    const hrChar = await hrService.getCharacteristic('heart_rate_measurement');
-                    await hrChar.startNotifications();
-                    hrChar.addEventListener('characteristicvaluechanged', e => {
-                        const v = e.target.value;
-                        let hr;
-                        const flags = v.getUint8(0);
-                        if (flags & 0x01) {
-                            hr = v.getUint16(1, true);
-                        } else {
-                            hr = v.getUint8(1);
-                        }
-                        heartRateElem.textContent = hr;
-                        appendLog(`[HeartRate] ${hr} BPM`);
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock was released');
                     });
-                    status.textContent = 'Leyendo Heart Rate...';
-                } catch (e) { appendLog('[HR ERROR] ' + e); }
-
-                // ====== Battery Level ======
-                try {
-                    const batService = await server.getPrimaryService('battery_service');
-                    const batChar = await batService.getCharacteristic('battery_level');
-                    const batValue = await batChar.readValue();
-                    const battery = batValue.getUint8(0);
-                    batteryLevelElem.textContent = battery;
-                    appendLog(`[Batería] ${battery}%`);
-                    // Notificaciones de batería (si soporta)
-                    if (batChar.properties.notify) {
-                        await batChar.startNotifications();
-                        batChar.addEventListener('characteristicvaluechanged', e => {
-                            const v = e.target.value;
-                            const battery = v.getUint8(0);
-                            batteryLevelElem.textContent = battery;
-                            appendLog(`[BateríaNotif] ${battery}%`);
-                        });
-                    }
-                } catch (e) { appendLog('[BAT ERROR] ' + e); }
-
-                // ====== Servicio 0x3802 (Unknown) ======
-                try {
-                    const s3802 = await server.getPrimaryService(0x3802);
-                    const char4A02 = await s3802.getCharacteristic(0x4a02);
-                    if (char4A02.properties.notify) {
-                        await char4A02.startNotifications();
-                        char4A02.addEventListener('characteristicvaluechanged', e => {
-                            const dv = e.target.value;
-                            let bytes = [];
-                            for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                            appendLog(`[0x4A02] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                        });
-                        status.textContent = 'Leyendo Unknown 0x4A02 (0x3802)...';
-                    }
-                } catch (e) { appendLog('[3802/4A02 ERROR] ' + e); }
-
-                // ====== Servicio 0xFE86 ======
-                try {
-                    const sfe86 = await server.getPrimaryService(0xfe86);
-                    const chars = await sfe86.getCharacteristics();
-                    for (const char of chars) {
-                        if (char.properties.notify) {
-                            await char.startNotifications();
-                            char.addEventListener('characteristicvaluechanged', e => {
-                                const dv = e.target.value;
-                                let bytes = [];
-                                for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                                appendLog(`[0xFE86 ${char.uuid}] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                            });
-                        } else if (char.properties.read) {
-                            try {
-                                const dv = await char.readValue();
-                                let bytes = [];
-                                for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                                appendLog(`[0xFE86 ${char.uuid} READ] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                            } catch(e) {}
-                        }
-                    }
-                } catch (e) { appendLog('[FE86 ERROR] ' + e); }
-
-                // ====== Servicio UUID largo (Huawei) ======
-                try {
-                    const sLong = await server.getPrimaryService('cc353442-be58-4ea2-876e-11d8d6976366');
-                    const chars = await sLong.getCharacteristics();
-                    for (const char of chars) {
-                        if (char.properties.notify) {
-                            await char.startNotifications();
-                            char.addEventListener('characteristicvaluechanged', e => {
-                                const dv = e.target.value;
-                                let bytes = [];
-                                for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                                appendLog(`[LONGUUID ${char.uuid}] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                            });
-                        } else if (char.properties.read) {
-                            try {
-                                const dv = await char.readValue();
-                                let bytes = [];
-                                for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                                appendLog(`[LONGUUID ${char.uuid} READ] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                            } catch(e) {}
-                        }
-                    }
-                } catch (e) { appendLog('[LONGUUID ERROR] ' + e); }
-
-                // ====== Generic Access & Attribute ======
-                try {
-                    const gaService = await server.getPrimaryService('generic_access');
-                    const gaChars = await gaService.getCharacteristics();
-                    for (const char of gaChars) {
-                        if (char.properties.read) {
-                            try {
-                                const dv = await char.readValue();
-                                let bytes = [];
-                                for (let i = 0; i < dv.byteLength; i++) bytes.push(dv.getUint8(i));
-                                appendLog(`[GENERIC_ACCESS ${char.uuid}] ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')} | Dec: [${bytes.join(', ')}]`);
-                            } catch(e) {}
-                        }
-                    }
-                } catch (e) { appendLog('[GENERIC ACCESS ERROR] ' + e); }
-
-                // ====== Done ======
-                status.textContent = "Leyendo todos los datos posibles... (revisa la consola para detalles)";
-            } catch (e) {
-                status.textContent = 'Error: ' + e;
-                connectBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
             }
         }
+        document.addEventListener('visibilitychange', () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        // UI Elements
+        const connectBluetoothBtn = document.getElementById('connectBluetooth');
+        const bluetoothStatusElem = document.getElementById('bluetoothStatus');
+        const heartRateDisplayElem = document.getElementById('heartRateDisplay');
+        const heartIconElem = document.getElementById('heartIcon');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenContainer = document.getElementById('fullscreenContainer');
+        const fullscreenHeartRate = document.getElementById('fullscreenHeartRate');
+        const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+        const fullscreenStatsBtn = document.getElementById('fullscreenStatsBtn');
+        const fullscreenStatsContainer = document.getElementById('fullscreenStatsContainer');
+        const fullscreenHeartRateStats = document.getElementById('fullscreenHeartRateStats');
+        const minBpmStats = document.getElementById('minBpmStats');
+        const maxBpmStats = document.getElementById('maxBpmStats');
+        const sessionTime = document.getElementById('sessionTime');
+        const sessionPlayBtn = document.getElementById('sessionPlayBtn');
+        const sessionPauseBtn = document.getElementById('sessionPauseBtn');
+        const resetSessionBtn = document.getElementById('resetSessionBtn');
+        const switchToStats = document.getElementById('switchToStats');
+        const switchToSimple = document.getElementById('switchToSimple');
+        const exitFullscreenStatsBtn = document.getElementById('exitFullscreenStatsBtn');
+
+        let heartRateCharacteristic = null;
+        let bleDevice = null;
+        let minBpm = null;
+        let maxBpm = null;
+
+        // Sesión (contador)
+        let sessionInterval = null;
+        let sessionStart = null;
+        let sessionElapsed = 0;
+        let sessionRunning = false;
+
+        // -- BLE & BPM Logic --
+        connectBluetoothBtn.addEventListener('click', async () => {
+            if (!navigator.bluetooth) {
+                bluetoothStatusElem.textContent = 'Error: Web Bluetooth no es compatible.';
+                bluetoothStatusElem.classList.add('text-red-400');
+                return;
+            }
+            try {
+                bluetoothStatusElem.textContent = 'Buscando sensor...';
+                connectBluetoothBtn.disabled = true;
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['heart_rate'] }],
+                    optionalServices: ['device_information']
+                });
+                bluetoothStatusElem.textContent = `Conectando a ${bleDevice.name || 'dispositivo'}...`;
+                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                const server = await bleDevice.gatt.connect();
+                bluetoothStatusElem.textContent = 'Obteniendo servicio...';
+                const service = await server.getPrimaryService('heart_rate');
+                heartRateCharacteristic = await service.getCharacteristic('heart_rate_measurement');
+                await heartRateCharacteristic.startNotifications();
+                bluetoothStatusElem.textContent = '¡Conectado! Escuchando latidos...';
+                bluetoothStatusElem.classList.remove('text-red-400');
+                bluetoothStatusElem.classList.add('text-green-400');
+                requestWakeLock();
+                heartRateCharacteristic.addEventListener('characteristicvaluechanged', handleHeartRateNotification);
+            } catch (error) {
+                if (error.message && error.message.includes('User cancelled')) {
+                    bluetoothStatusElem.textContent = 'Conexión cancelada por el usuario.';
+                } else {
+                    bluetoothStatusElem.textContent = `Error: ${error.message}`;
+                }
+                bluetoothStatusElem.classList.add('text-red-400');
+                connectBluetoothBtn.disabled = false;
+            }
+        });
+
+        function handleHeartRateNotification(event) {
+            const value = event.target.value;
+            const heartRate = parseHeartRate(value);
+            updateBpm(heartRate);
+        }
+
+        function parseHeartRate(value) {
+            const flags = value.getUint8(0);
+            const rate16Bits = (flags & 0x1) !== 0;
+            return rate16Bits ? value.getUint16(1, true) : value.getUint8(1);
+        }
+
+        function updateBpm(bpm) {
+            if (bpm > 0) {
+                // Actualiza animación
+                const animationDuration = 60 / bpm;
+                heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
+                heartIconElem.classList.add('heartbeat-animation');
+            } else {
+                heartIconElem.classList.remove('heartbeat-animation');
+            }
+            // Actualiza mínimo y máximo
+            if (bpm > 0) {
+                if (minBpm === null || bpm < minBpm) minBpm = bpm;
+                if (maxBpm === null || bpm > maxBpm) maxBpm = bpm;
+            }
+            // Pantalla principal
+            heartRateDisplayElem.textContent = bpm > 0 ? bpm : '--';
+            // Fullscreen Simple
+            updateFullScreenHeartRate(bpm > 0 ? bpm : '--');
+            // Fullscreen Stats
+            updateFullScreenStats(bpm > 0 ? bpm : '--');
+        }
+
+        function onDisconnected() {
+            bluetoothStatusElem.textContent = 'Dispositivo desconectado.';
+            bluetoothStatusElem.classList.remove('text-green-400');
+            bluetoothStatusElem.classList.add('text-red-400');
+            heartRateDisplayElem.textContent = '--';
+            heartIconElem.classList.remove('heartbeat-animation');
+            connectBluetoothBtn.disabled = false;
+            if (heartRateCharacteristic) {
+                heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
+                heartRateCharacteristic = null;
+            }
+            updateFullScreenHeartRate('--');
+            updateFullScreenStats('--');
+        }
+
+        // Pantalla completa: solo número
+        function enterFullScreenSimple() {
+            fullscreenContainer.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            if (document.documentElement.requestFullscreen) fullscreenContainer.requestFullscreen();
+            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRate), 200);
+        }
+        function exitFullScreenSimple() {
+            fullscreenContainer.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            if (document.fullscreenElement) document.exitFullscreen();
+        }
+
+        // Pantalla completa: estadísticas
+        function enterFullScreenStats() {
+            fullscreenStatsContainer.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            if (document.documentElement.requestFullscreen) fullscreenStatsContainer.requestFullscreen();
+            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRateStats), 200);
+        }
+        function exitFullScreenStats() {
+            fullscreenStatsContainer.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            if (document.fullscreenElement) document.exitFullscreen();
+        }
+
+        // Alternar entre pantallas completas
+        switchToStats.addEventListener('click', () => {
+            fullscreenContainer.classList.add('hidden');
+            enterFullScreenStats();
+        });
+        switchToSimple.addEventListener('click', () => {
+            fullscreenStatsContainer.classList.add('hidden');
+            enterFullScreenSimple();
+        });
+
+        // Fullscreen listeners
+        fullscreenBtn.addEventListener('click', enterFullScreenSimple);
+        exitFullscreenBtn.addEventListener('click', exitFullScreenSimple);
+        fullscreenStatsBtn.addEventListener('click', enterFullScreenStats);
+        exitFullscreenStatsBtn.addEventListener('click', exitFullScreenStats);
+
+        document.addEventListener('fullscreenchange', () => {
+            // Cuando se sale de pantalla completa, oculta ambos contenedores
+            if (!document.fullscreenElement) {
+                fullscreenContainer.classList.add('hidden');
+                fullscreenStatsContainer.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        });
+
+        // Adaptar fuente al tamaño de pantalla
+        function fitHeartRateFontSize(el) {
+            if (!el) return;
+            el.style.fontSize = '';
+            const margin = 250; // espacio para controles
+            const boxW = window.innerWidth * 0.96;
+            const boxH = (window.innerHeight - margin) * 0.98;
+            el.style.fontSize = '180px';
+            const rect = el.getBoundingClientRect();
+            const scaleW = boxW / rect.width;
+            const scaleH = boxH / rect.height;
+            const scale = Math.min(scaleW, scaleH, 1.1);
+            el.style.fontSize = (180 * scale) + 'px';
+        }
+        window.addEventListener('resize', () => {
+            if (!fullscreenContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRate);
+            if (!fullscreenStatsContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRateStats);
+        });
+
+        // Actualización UI Pantallas Completas
+        function updateFullScreenHeartRate(bpm) {
+            fullscreenHeartRate.textContent = bpm;
+            fitHeartRateFontSize(fullscreenHeartRate);
+        }
+        function updateFullScreenStats(bpm) {
+            fullscreenHeartRateStats.textContent = bpm;
+            minBpmStats.textContent = minBpm !== null ? minBpm : '--';
+            maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
+            fitHeartRateFontSize(fullscreenHeartRateStats);
+        }
+
+        updateFullScreenHeartRate('--');
+        updateFullScreenStats('--');
+
+        // --------- Sesión ---------
+        function formatDuration(ms) {
+            const total = Math.floor(ms / 1000);
+            const h = Math.floor(total / 3600);
+            const m = Math.floor((total % 3600) / 60);
+            const s = total % 60;
+            return [
+                h.toString().padStart(2, '0'),
+                m.toString().padStart(2, '0'),
+                s.toString().padStart(2, '0')
+            ].join(':');
+        }
+
+        function startSession() {
+            if (!sessionRunning) {
+                sessionRunning = true;
+                sessionStart = Date.now() - sessionElapsed;
+                sessionInterval = setInterval(updateSessionTime, 1000);
+            }
+        }
+        function pauseSession() {
+            if (sessionRunning) {
+                sessionRunning = false;
+                sessionElapsed = Date.now() - sessionStart;
+                clearInterval(sessionInterval);
+            }
+        }
+        function resetSession() {
+            sessionRunning = false;
+            sessionElapsed = 0;
+            clearInterval(sessionInterval);
+            sessionTime.textContent = "00:00:00";
+            minBpm = null;
+            maxBpm = null;
+            minBpmStats.textContent = '--';
+            maxBpmStats.textContent = '--';
+        }
+        function updateSessionTime() {
+            if (sessionRunning) {
+                sessionElapsed = Date.now() - sessionStart;
+            }
+            sessionTime.textContent = formatDuration(sessionElapsed);
+        }
+        sessionPlayBtn.addEventListener('click', startSession);
+        sessionPauseBtn.addEventListener('click', pauseSession);
+        resetSessionBtn.addEventListener('click', resetSession);
+
+        // Reiniciar valores al entrar a una sesión nueva
+        fullscreenStatsBtn.addEventListener('click', () => {
+            // Si se desea reiniciar la sesión al entrar en la pantalla stats, descomenta la siguiente línea:
+            // resetSession();
+        });
+
     </script>
 </body>
 </html>
