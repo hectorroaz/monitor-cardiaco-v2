@@ -34,25 +34,93 @@
             margin: 0 !important;
             color: #f1f5f9 !important;
         }
-        #fullscreenHeartRate, #fullscreenHeartRateStats {
+        /* --- Layout horizontal/vertical para stats --- */
+        #statsLayout {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #statsLeft, #statsRight {
+            width: 100%;
+        }
+        #fullscreenHeartRateStats {
+            width: 100%;
             text-align: center;
-            word-break: break-all;
-            white-space: nowrap;
+            font-size: 20vw;
+            font-weight: 800;
             line-height: 1;
-            letter-spacing: -0.02em;
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            display: block;
-            user-select: none;
+        }
+        #statsRight {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 2vw;
+            margin-top: 4vw;
         }
         .stats-label { font-size: 1.1rem; color: #cbd5e1; }
         .stats-value { font-size: 1.6rem; font-weight: 700; color: #fbbf24; }
-        @media (orientation: landscape) {
-            #fullscreenHeartRate { font-size: 18vw !important; }
+        .timer-box {
+            font-family: 'Inter', monospace;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #06b6d4;
+            margin-bottom: 0.5em;
         }
-        @media (orientation: portrait) {
-            #fullscreenHeartRate { font-size: 18vw !important; }
+        /* Control icon size */
+        .circle-btn svg { width: 2.2rem; height: 2.2rem; }
+        .circle-btn { width: 3.2rem; height: 3.2rem; display: flex; align-items: center; justify-content: center; }
+        /* Layout apaisado/landscape */
+        @media (orientation: landscape) {
+            #statsLayout {
+                flex-direction: row;
+                align-items: stretch;
+                gap: 0;
+            }
+            #statsLeft {
+                width: 50vw;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+            }
+            #fullscreenHeartRateStats {
+                font-size: 19vw;
+                text-align: right;
+            }
+            #statsRight {
+                width: 50vw;
+                min-width: 280px;
+                max-width: 480px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                height: 100vh;
+                margin-top: 0;
+                padding-left: 3vw;
+            }
+        }
+        /* Simple modo: HR gigante en centro */
+        #fullscreenHeartRate {
+            width: 100vw;
+            text-align: center;
+            font-size: 20vw;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        @media (orientation: landscape) {
+            #fullscreenHeartRate {
+                font-size: 19vw;
+            }
         }
     </style>
 </head>
@@ -91,7 +159,7 @@
     <!-- Pantalla completa solo número -->
     <div id="fullscreenContainer" class="hidden fixed inset-0 bg-dark flex flex-col justify-center items-center z-50 p-0 m-0">
         <div class="flex-1 flex items-center justify-center w-full h-full">
-            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none select-none w-full" style="font-size: 18vw;">--</span>
+            <span id="fullscreenHeartRate">--</span>
         </div>
         <div class="absolute bottom-8 right-8 flex flex-col gap-3">
             <button id="switchToStats" class="bg-yellow-600 text-white p-4 rounded-full hover:bg-yellow-700 focus:outline-none" aria-label="Ver estadísticas" title="Cambiar a pantalla de estadísticas">
@@ -104,44 +172,42 @@
     </div>
 
     <!-- Pantalla completa con estadísticas -->
-    <div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark z-50 p-0 m-0 flex flex-col items-center justify-center">
-        <div id="statsFlex" class="w-full h-full flex flex-col items-center justify-center">
-            <!-- Vertical layout by default -->
-            <span id="fullscreenHeartRateStats" class="text-white font-extrabold leading-none select-none" style="font-size: 10vw;">--</span>
-            <div class="flex gap-8 mt-6">
-                <div class="flex flex-col items-center">
+    <div id="fullscreenStatsContainer" class="hidden fixed inset-0 bg-dark z-50 p-0 m-0 flex items-center justify-center">
+        <div id="statsLayout">
+            <div id="statsLeft">
+                <span id="fullscreenHeartRateStats">--</span>
+            </div>
+            <div id="statsRight">
+                <div>
                     <span class="stats-label">Mínimo</span>
                     <span id="minBpmStats" class="stats-value">--</span>
                 </div>
-                <div class="flex flex-col items-center">
+                <div>
                     <span class="stats-label">Máximo</span>
                     <span id="maxBpmStats" class="stats-value">--</span>
                 </div>
-            </div>
-            <div class="flex flex-col items-center mt-8">
-                <span id="sessionTime" class="text-4xl font-mono font-bold text-cyan-400">00:00</span>
-                <div class="flex gap-6 mt-2">
-                    <button id="sessionPlayBtn" class="bg-green-600 hover:bg-green-700 p-4 rounded-full focus:outline-none" aria-label="Iniciar sesión">
-                        <!-- Play icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="8,5 19,12 8,19" fill="white"/></svg>
+                <div>
+                    <span id="sessionTime" class="timer-box">00:00</span>
+                </div>
+                <div class="flex gap-4 mt-1">
+                    <button id="sessionPlayBtn" class="circle-btn bg-green-600 hover:bg-green-700 focus:outline-none" aria-label="Iniciar sesión">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#16a34a"/><polygon points="10,8 16,12 10,16" fill="#fff"/></svg>
                     </button>
-                    <button id="sessionPauseBtn" class="bg-red-600 hover:bg-red-700 p-4 rounded-full focus:outline-none" aria-label="Pausar sesión">
-                        <!-- Pause icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="6" y="5" width="4" height="14" fill="white"/><rect x="14" y="5" width="4" height="14" fill="white"/></svg>
+                    <button id="sessionPauseBtn" class="circle-btn bg-red-600 hover:bg-red-700 focus:outline-none" aria-label="Pausar sesión">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#dc2626"/><rect x="9" y="8" width="2" height="8" rx="1" fill="#fff"/><rect x="13" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
                     </button>
-                    <button id="resetSessionBtn" class="bg-gray-500 hover:bg-gray-700 p-4 rounded-full focus:outline-none" aria-label="Reiniciar sesión">
-                        <!-- Reset icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6V2M12 2l-2 2m2-2l2 2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" fill="none"/></svg>
+                    <button id="resetSessionBtn" class="circle-btn bg-gray-500 hover:bg-gray-700 focus:outline-none" aria-label="Reiniciar cronómetro">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#6b7280"/><path d="M12 8v4l3 3" stroke="#fff" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="#fff" stroke-width="2" fill="none"/></svg>
                     </button>
                 </div>
-            </div>
-            <div class="absolute bottom-8 right-8 flex flex-col gap-3">
-                <button id="switchToSimple" class="bg-gray-600 text-white p-4 rounded-full hover:bg-gray-700 focus:outline-none" aria-label="Solo número" title="Cambiar a pantalla de solo número">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><rect x="9" y="8" width="6" height="8" rx="2" fill="#fff"/></svg>
-                </button>
-                <button id="exitFullscreenStatsBtn" class="bg-gray-700 text-white p-4 rounded-full hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
+                <div class="flex flex-row gap-4 mt-8">
+                    <button id="switchToSimple" class="circle-btn bg-yellow-600 hover:bg-yellow-700 focus:outline-none" aria-label="Solo número" title="Cambiar a pantalla de solo número">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><rect x="9" y="8" width="6" height="8" rx="2" fill="#fff"/></svg>
+                    </button>
+                    <button id="exitFullscreenStatsBtn" class="circle-btn bg-gray-700 hover:bg-gray-900 focus:outline-none" aria-label="Salir de pantalla completa">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -153,13 +219,9 @@
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake Lock was released');
-                    });
+                    wakeLock.addEventListener('release', () => {});
                 }
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
-            }
+            } catch (err) {}
         }
         document.addEventListener('visibilitychange', () => {
             if (wakeLock !== null && document.visibilityState === 'visible') {
@@ -188,7 +250,7 @@
         const switchToStats = document.getElementById('switchToStats');
         const switchToSimple = document.getElementById('switchToSimple');
         const exitFullscreenStatsBtn = document.getElementById('exitFullscreenStatsBtn');
-        const statsFlex = document.getElementById('statsFlex');
+        const statsLayout = document.getElementById('statsLayout');
 
         let heartRateCharacteristic = null;
         let bleDevice = null;
@@ -258,14 +320,15 @@
             } else {
                 heartIconElem.classList.remove('heartbeat-animation');
             }
-            // Actualiza mínimo y máximo
             if (bpm > 0) {
                 if (minBpm === null || bpm < minBpm) minBpm = bpm;
                 if (maxBpm === null || bpm > maxBpm) maxBpm = bpm;
             }
             heartRateDisplayElem.textContent = bpm > 0 ? bpm : '--';
-            updateFullScreenHeartRate(bpm > 0 ? bpm : '--');
-            updateFullScreenStats(bpm > 0 ? bpm : '--');
+            fullscreenHeartRate.textContent = bpm > 0 ? bpm : '--';
+            fullscreenHeartRateStats.textContent = bpm > 0 ? bpm : '--';
+            minBpmStats.textContent = minBpm !== null ? minBpm : '--';
+            maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
         }
 
         function onDisconnected() {
@@ -279,8 +342,10 @@
                 heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
                 heartRateCharacteristic = null;
             }
-            updateFullScreenHeartRate('--');
-            updateFullScreenStats('--');
+            fullscreenHeartRate.textContent = '--';
+            fullscreenHeartRateStats.textContent = '--';
+            minBpmStats.textContent = '--';
+            maxBpmStats.textContent = '--';
         }
 
         // Pantalla completa: solo número
@@ -288,7 +353,6 @@
             fullscreenContainer.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
             if (document.documentElement.requestFullscreen) fullscreenContainer.requestFullscreen();
-            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRate), 200);
         }
         function exitFullScreenSimple() {
             fullscreenContainer.classList.add('hidden');
@@ -301,8 +365,6 @@
             fullscreenStatsContainer.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
             if (document.documentElement.requestFullscreen) fullscreenStatsContainer.requestFullscreen();
-            setTimeout(adaptStatsLayout, 50);
-            setTimeout(() => fitHeartRateFontSize(fullscreenHeartRateStats), 250);
         }
         function exitFullScreenStats() {
             fullscreenStatsContainer.classList.add('hidden');
@@ -334,60 +396,6 @@
             }
         });
 
-        // Adaptar fuente al tamaño de pantalla
-        function fitHeartRateFontSize(el) {
-            if (!el) return;
-            el.style.fontSize = '';
-            let margin = 250;
-            if (window.innerWidth > window.innerHeight) { margin = 80; }
-            const boxW = window.innerWidth * 0.96;
-            const boxH = (window.innerHeight - margin) * 0.98;
-            el.style.fontSize = '180px';
-            const rect = el.getBoundingClientRect();
-            const scaleW = boxW / rect.width;
-            const scaleH = boxH / rect.height;
-            const scale = Math.min(scaleW, scaleH, 1.1);
-            el.style.fontSize = (180 * scale) + 'px';
-        }
-        window.addEventListener('resize', () => {
-            adaptStatsLayout();
-            if (!fullscreenContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRate);
-            if (!fullscreenStatsContainer.classList.contains('hidden')) fitHeartRateFontSize(fullscreenHeartRateStats);
-        });
-
-        // Layout adaptable de estadísticas
-        function adaptStatsLayout() {
-            // Landscape = número left, stats y controles right
-            if (window.innerWidth > window.innerHeight) {
-                statsFlex.classList.remove('flex-col', 'items-center');
-                statsFlex.classList.add('flex-row', 'items-center', 'justify-center', 'gap-12');
-                fullscreenHeartRateStats.classList.add('mr-8');
-                fullscreenHeartRateStats.style.fontSize = "14vw";
-                statsFlex.children[1].classList.add('flex-col', 'justify-center', 'items-start', 'gap-2');
-                statsFlex.children[2].classList.add('flex-col', 'justify-center', 'items-start', 'gap-2');
-            } else {
-                statsFlex.classList.add('flex-col', 'items-center');
-                statsFlex.classList.remove('flex-row', 'justify-center', 'gap-12');
-                fullscreenHeartRateStats.classList.remove('mr-8');
-                fullscreenHeartRateStats.style.fontSize = "10vw";
-            }
-        }
-
-        // Actualización UI Pantallas Completas
-        function updateFullScreenHeartRate(bpm) {
-            fullscreenHeartRate.textContent = bpm;
-            fitHeartRateFontSize(fullscreenHeartRate);
-        }
-        function updateFullScreenStats(bpm) {
-            fullscreenHeartRateStats.textContent = bpm;
-            minBpmStats.textContent = minBpm !== null ? minBpm : '--';
-            maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
-            fitHeartRateFontSize(fullscreenHeartRateStats);
-        }
-
-        updateFullScreenHeartRate('--');
-        updateFullScreenStats('--');
-
         // --------- Sesión ---------
         function formatDuration(ms) {
             const total = Math.floor(ms / 1000);
@@ -413,14 +421,11 @@
             }
         }
         function resetSession() {
+            // SOLO reiniciar tiempo, NO afecta min/max ni bpm actual
             sessionRunning = false;
             sessionElapsed = 0;
             clearInterval(sessionInterval);
             sessionTime.textContent = "00:00";
-            minBpm = null;
-            maxBpm = null;
-            minBpmStats.textContent = '--';
-            maxBpmStats.textContent = '--';
         }
         function updateSessionTime() {
             if (sessionRunning) {
@@ -432,9 +437,13 @@
         sessionPauseBtn.addEventListener('click', pauseSession);
         resetSessionBtn.addEventListener('click', resetSession);
 
-        fullscreenStatsBtn.addEventListener('click', () => {
-            // resetSession(); // Actívalo si quieres que siempre se reinicie sesión al entrar a stats
-        });
+        // Layout adaptativo: ajusta solo al abrir o rotar
+        function adjustLayout() {
+            // Nada más necesario: el CSS con flex resuelve el layout.
+        }
+        window.addEventListener('resize', adjustLayout);
+        adjustLayout();
+
     </script>
 </body>
 </html>
