@@ -20,7 +20,7 @@
     .timer-box { font-family: 'Inter', monospace; font-size: 2.4rem; font-weight: 700; color: #06b6d4; margin-bottom: 0.5em; }
     .center-flex {
       width: 100vw;
-      height: 100dvh; /* viewport real en móviles */
+      height: 100dvh;
       min-height: 350px;
       min-width: 240px;
       display: flex;
@@ -52,7 +52,7 @@
       margin: 0; padding: 0;
       width: 100%;
       height: auto;
-      font-size: 120px; /* punto de partida */
+      font-size: 120px;
       min-font-size: 9vw;
       transition: font-size 0.1s;
       letter-spacing: -0.03em;
@@ -230,6 +230,10 @@
   let sessionElapsed = 0;
   let sessionRunning = false;
 
+  // Estado para mantener HR "real" a mostrar
+  window.__latestHR = '--';
+  window.__latestHRStats = '--';
+
   // BLE & BPM Logic
   connectBluetoothBtn.addEventListener('click', async () => {
     if (!navigator.bluetooth) {
@@ -280,6 +284,9 @@
   }
 
   function updateBpm(bpm) {
+    // Actualizar estado global de HR
+    window.__latestHR = bpm > 0 ? bpm : '--';
+    window.__latestHRStats = bpm > 0 ? bpm : '--';
     if (bpm > 0) {
       const animationDuration = 60 / bpm;
       heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
@@ -292,13 +299,11 @@
       if (maxBpm === null || bpm > maxBpm) maxBpm = bpm;
     }
     heartRateDisplayElem.textContent = bpm > 0 ? bpm : '--';
-    fullscreenHeartRate.textContent = bpm > 0 ? bpm : '--';
-    fullscreenHeartRateStats.textContent = bpm > 0 ? bpm : '--';
-    minBpmStats.textContent = minBpm !== null ? minBpm : '--';
-    maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
-
+    // El ajuste se hace por función, el valor visual por variable global
     fitHeartRateStatsFont();
     fitHeartRateSimpleFont();
+    minBpmStats.textContent = minBpm !== null ? minBpm : '--';
+    maxBpmStats.textContent = maxBpm !== null ? maxBpm : '--';
   }
 
   function onDisconnected() {
@@ -312,12 +317,12 @@
       heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
       heartRateCharacteristic = null;
     }
-    fullscreenHeartRate.textContent = '--';
-    fullscreenHeartRateStats.textContent = '--';
-    minBpmStats.textContent = '--';
-    maxBpmStats.textContent = '--';
+    window.__latestHR = '--';
+    window.__latestHRStats = '--';
     fitHeartRateStatsFont();
     fitHeartRateSimpleFont();
+    minBpmStats.textContent = '--';
+    maxBpmStats.textContent = '--';
   }
 
   // Pantalla completa: solo número
@@ -412,11 +417,15 @@
   sessionPauseBtn.addEventListener('click', pauseSession);
   resetSessionBtn.addEventListener('click', resetSession);
 
-  // Ajuste automático de fuente para HR Stats (Samsung-friendly)
+  // Ajuste automático de fuente para HR Stats con prototipo "188"
   function fitHeartRateStatsFont() {
     const box = document.querySelector('#statsLeft.hr-box');
     const num = document.getElementById('fullscreenHeartRateStats');
     if (!box || !num) return;
+    const realValue = window.__latestHRStats || '--';
+    const proto = '188';
+    // Medir el tamaño con el prototipo
+    num.textContent = proto;
     let boxW = box.offsetWidth, boxH = box.offsetHeight;
     let min = Math.floor(Math.min(boxH, boxW) * 0.30);
     let max = Math.floor(Math.min(boxH, boxW) * 1.1);
@@ -431,13 +440,18 @@
       }
     }
     num.style.fontSize = finalSize + "px";
+    // Ahora sí, mostrar el HR real
+    num.textContent = realValue;
   }
 
-  // Ajuste automático de fuente para modo simple (Samsung-friendly)
+  // Ajuste automático de fuente para modo simple
   function fitHeartRateSimpleFont() {
     const box = document.querySelector('#fullscreenContainer .center-flex');
     const num = document.getElementById('fullscreenHeartRate');
     if (!box || !num) return;
+    const realValue = window.__latestHR || '--';
+    const proto = '188';
+    num.textContent = proto;
     let boxW = box.offsetWidth, boxH = box.offsetHeight;
     let min = Math.floor(Math.min(boxH, boxW) * 0.32);
     let max = Math.floor(Math.min(boxH, boxW) * 1.18);
@@ -452,6 +466,7 @@
       }
     }
     num.style.fontSize = finalSize + "px";
+    num.textContent = realValue;
   }
 
   window.addEventListener('resize', () => {
