@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Ritmo Cardíaco BLE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000 !important;
+            color: #fff !important;
+        }
+        .heartbeat-animation {
+            animation: pulsate 1s infinite ease-in-out;
+        }
+        @keyframes pulsate {
+            0% { transform: scale(1);}
+            50% { transform: scale(1.15);}
+            100% { transform: scale(1);}
+        }
+        .fullscreen-container {
+            background: #000 !important;
+            padding: 0!important; margin:0!important;
+        }
+        .bpm-label { font-size: 7vw; line-height: 1; margin-top: 0;}
+        @media (orientation: landscape) {
+            .bpm-label { font-size: 5vw !important; }
+        }
+        /* Botón flotante de alternancia fullscreen */
+        .switch-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-black text-white flex items-center justify-center min-h-screen p-4">
+
+    <div id="mainScreen" class="w-full max-w-md bg-gray-900 rounded-2xl shadow-lg p-8 space-y-6 text-center">
+        <header>
+            <h1 class="text-3xl font-bold text-white">Monitor de Ritmo Cardíaco</h1>
+            <p class="text-gray-300 mt-2">Conéctate a tu banda de frecuencia cardíaca BLE.</p>
+        </header>
+        <div class="border border-gray-700 rounded-lg p-6 bg-gray-800">
+            <div class="flex justify-center items-center mb-4">
+                <svg id="heartIcon" class="w-16 h-16 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div id="heartRateDisplay" class="text-7xl font-bold text-white tracking-tight">--</div>
+            <div class="text-lg text-gray-400">BPM</div>
+            <div class="flex justify-between mt-4 text-gray-300">
+                <span id="durationDisplay">Duración: --:--</span>
+                <span id="stepsDisplay">Pasos: --</span>
+            </div>
+            <div class="flex justify-between mt-2 text-gray-300">
+                <span id="distanceDisplay">Distancia: -- km</span>
+                <span id="speedDisplay">Velocidad: -- km/h</span>
+            </div>
+            <div class="flex justify-between mt-2 text-gray-300">
+                <span id="caloriesDisplay">Calorías: --</span>
+            </div>
+            <p id="bluetoothStatus" class="mt-4 text-sm text-gray-400 h-5">Estado: Desconectado</p>
+        </div>
+        <div>
+            <button id="connectBluetooth" class="w-full bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 disabled:bg-gray-600">
+                Conectar a Sensor
+            </button>
+        </div>
+        <div>
+            <button id="fullscreenBtn" class="w-full mt-3 bg-white text-black font-semibold py-3 px-6 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white">
+                Pantalla Completa
+            </button>
+        </div>
+    </div>
+
+    <!-- Fullscreen Modal -->
+    <div id="fullscreenContainer" class="hidden fixed inset-0 bg-black fullscreen-container flex flex-col justify-between items-center z-50 p-0 m-0">
+        <!-- Switch screen button -->
+        <button id="switchScreenBtn" class="switch-btn bg-gray-900 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 focus:outline-none text-sm">Ver {datos/minimal}</button>
+        <div id="fullscreenMinimal" class="w-full flex-1 flex flex-col items-center justify-center p-0 m-0">
+            <span id="fullscreenHeartRate" class="text-white font-extrabold leading-none text-[22vw]">--</span>
+            <span class="bpm-label text-gray-300">BPM</span>
+            <div class="mt-6">
+                <span id="fullscreenDuration" class="text-gray-200 text-2xl block">Duración: --:--</span>
+            </div>
+        </div>
+        <div id="fullscreenAllData" class="w-full flex-1 flex flex-col items-center justify-center p-0 m-0 hidden">
+            <div class="flex flex-col items-center space-y-8">
+                <div>
+                    <span class="text-gray-500 text-lg">Frecuencia Cardíaca</span>
+                    <div class="text-white text-[12vw] font-extrabold" id="fsdHeartRate">--</div>
+                    <span class="text-gray-400">BPM</span>
+                </div>
+                <div class="grid grid-cols-2 gap-8 mt-8 text-white text-2xl">
+                    <div>
+                        <div class="text-gray-400 text-sm">Duración</div>
+                        <div id="fsdDuration">--:--</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Pasos</div>
+                        <div id="fsdSteps">--</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Distancia</div>
+                        <div id="fsdDistance">-- km</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Velocidad</div>
+                        <div id="fsdSpeed">-- km/h</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Calorías</div>
+                        <div id="fsdCalories">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="w-full flex flex-col items-center mb-8">
+            <button id="exitFullscreenBtn" class="mt-6 bg-gray-900 text-white px-10 py-5 rounded-xl text-2xl hover:bg-gray-700">Salir</button>
+        </div>
+    </div>
+
+    <script>
+        // =========== Variables globales ===========
+        let wakeLock = null;
+        let heartRateCharacteristic = null;
+        let durationCharacteristic = null;
+        let stepsCharacteristic = null;
+        let distanceCharacteristic = null;
+        let speedCharacteristic = null;
+        let caloriesCharacteristic = null;
+        let bleDevice = null;
+        let startTime = null;
+        let timerInterval = null;
+        let currentData = {
+            heartRate: '--',
+            duration: '--:--',
+            steps: '--',
+            distance: '--',
+            speed: '--',
+            calories: '--'
+        };
+        let fullscreenMode = 'minimal'; // 'minimal' | 'allData'
+
+        // =========== Elementos UI ===========
+        const connectBluetoothBtn = document.getElementById('connectBluetooth');
+        const bluetoothStatusElem = document.getElementById('bluetoothStatus');
+        const heartRateDisplayElem = document.getElementById('heartRateDisplay');
+        const heartIconElem = document.getElementById('heartIcon');
+        const durationDisplayElem = document.getElementById('durationDisplay');
+        const stepsDisplayElem = document.getElementById('stepsDisplay');
+        const distanceDisplayElem = document.getElementById('distanceDisplay');
+        const speedDisplayElem = document.getElementById('speedDisplay');
+        const caloriesDisplayElem = document.getElementById('caloriesDisplay');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenContainer = document.getElementById('fullscreenContainer');
+        const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+        const fullscreenHeartRate = document.getElementById('fullscreenHeartRate');
+        const fullscreenDuration = document.getElementById('fullscreenDuration');
+        const fullscreenMinimal = document.getElementById('fullscreenMinimal');
+        const fullscreenAllData = document.getElementById('fullscreenAllData');
+        const switchScreenBtn = document.getElementById('switchScreenBtn');
+        // AllData
+        const fsdHeartRate = document.getElementById('fsdHeartRate');
+        const fsdDuration = document.getElementById('fsdDuration');
+        const fsdSteps = document.getElementById('fsdSteps');
+        const fsdDistance = document.getElementById('fsdDistance');
+        const fsdSpeed = document.getElementById('fsdSpeed');
+        const fsdCalories = document.getElementById('fsdCalories');
+
+        // =========== Wake Lock ===========
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        // Wake lock released
+                    });
+                }
+            } catch (err) { /* Ignore */ }
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        // =========== BLE Connection ===========
+        connectBluetoothBtn.addEventListener('click', async () => {
+            if (!navigator.bluetooth) {
+                bluetoothStatusElem.textContent = 'Error: Web Bluetooth no es compatible.';
+                bluetoothStatusElem.classList.add('text-red-400');
+                return;
+            }
+            try {
+                bluetoothStatusElem.textContent = 'Buscando sensor...';
+                connectBluetoothBtn.disabled = true;
+
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['heart_rate'] }],
+                    optionalServices: [
+                        'device_information',
+                        'fitness_machine',
+                        'running_speed_and_cadence',
+                        'cycling_power',
+                        'cycling_speed_and_cadence',
+                        '00001816-0000-1000-8000-00805f9b34fb' // Running Speed and Cadence (standard UUID)
+                    ]
+                });
+                bluetoothStatusElem.textContent = `Conectando a ${bleDevice.name || 'dispositivo'}...`;
+                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                const server = await bleDevice.gatt.connect();
+
+                // 1. Heart Rate Service
+                const hrService = await server.getPrimaryService('heart_rate');
+                heartRateCharacteristic = await hrService.getCharacteristic('heart_rate_measurement');
+                await heartRateCharacteristic.startNotifications();
+                heartRateCharacteristic.addEventListener('characteristicvaluechanged', handleHeartRateNotification);
+
+                // 2. Intentar obtener más datos si existen...
+                // Running Speed and Cadence
+                let rscService, rscChar, stepsChar;
+                try {
+                    rscService = await server.getPrimaryService('running_speed_and_cadence');
+                    rscChar = await rscService.getCharacteristic('running_speed_and_cadence_measurement');
+                    await rscChar.startNotifications();
+                    rscChar.addEventListener('characteristicvaluechanged', handleRunningSpeedCadenceNotification);
+                    // Algunos dispositivos tienen pasos/distancia separados
+                } catch (e) {}
+
+                // Fitness Machine (para calorías, distancia, duración, etc)
+                try {
+                    const fitService = await server.getPrimaryService('fitness_machine');
+                    const chars = await fitService.getCharacteristics();
+                    chars.forEach(char => {
+                        // Se pueden leer características y asociar listeners según UUIDs conocidas
+                        if (char.uuid.endsWith('2ad2')) { // Training Status
+                            // Puede tener calorías y duración
+                            char.startNotifications();
+                            char.addEventListener('characteristicvaluechanged', handleFitnessMachineNotification);
+                        }
+                    });
+                } catch (e) {}
+
+                // Inicializa datos básicos y timer
+                startTime = Date.now();
+                startTimer();
+                bluetoothStatusElem.textContent = '¡Conectado! Escuchando datos...';
+                bluetoothStatusElem.classList.remove('text-red-400');
+                bluetoothStatusElem.classList.add('text-green-400');
+                requestWakeLock();
+            } catch (error) {
+                bluetoothStatusElem.textContent = `Error: ${error.message}`;
+                bluetoothStatusElem.classList.add('text-red-400');
+                connectBluetoothBtn.disabled = false;
+            }
+        });
+
+        // =========== BLE Data Handlers ===========
+        function handleHeartRateNotification(event) {
+            const value = event.target.value;
+            let heartRate = parseHeartRate(value);
+            if (heartRate && heartRate > 0) {
+                currentData.heartRate = heartRate;
+                updateUI();
+                animateHeart(heartRate);
+            } else {
+                currentData.heartRate = '--';
+                updateUI();
+                heartIconElem.classList.remove('heartbeat-animation');
+            }
+        }
+
+        function parseHeartRate(value) {
+            const flags = value.getUint8(0);
+            const rate16Bits = (flags & 0x1) !== 0;
+            if (rate16Bits) {
+                return value.getUint16(1, true);
+            } else {
+                return value.getUint8(1);
+            }
+        }
+
+        // Running Speed and Cadence Profile
+        function handleRunningSpeedCadenceNotification(event) {
+            const value = event.target.value;
+            let offset = 0;
+            const flags = value.getUint8(offset++);
+            let speed = 0, cadence = 0, stride = 0, totalDistance = 0;
+            if (flags & 0x01) { // Inst. Stride Length
+                speed = value.getUint16(offset, true) / 256 * 3.6; offset += 2; // m/s a km/h
+            }
+            if (flags & 0x02) {
+                cadence = value.getUint8(offset++); // steps per minute
+            }
+            if (flags & 0x04) {
+                totalDistance = value.getUint32(offset, true) / 1000; offset += 4; // metros a km
+            }
+            if (speed) currentData.speed = speed.toFixed(2);
+            if (cadence) currentData.steps = cadence;
+            if (totalDistance) currentData.distance = totalDistance.toFixed(2);
+            updateUI();
+        }
+
+        // Fitness Machine (para calorías y duración, si disponibles)
+        function handleFitnessMachineNotification(event) {
+            const value = event.target.value;
+            // Aquí se necesitaría conocer el profile exacto de la banda, ya que muchas usan UUIDs privadas
+            // Ejemplo genérico, ajusta según tu banda
+            // Suponiendo: primer 4 bytes -> duración (segundos), siguientes 4 bytes -> calorías (kcal)
+            let duration = value.getUint32(0, true); // segundos
+            let calories = value.getUint32(4, true); // kcal
+            if (duration) currentData.duration = formatDuration(duration);
+            if (calories) currentData.calories = calories;
+            updateUI();
+        }
+
+        // =========== Timer para Duración ===========
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (startTime) {
+                    let durationSec = Math.floor((Date.now() - startTime) / 1000);
+                    currentData.duration = formatDuration(durationSec);
+                    updateUI();
+                }
+            }, 1000);
+        }
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+        function formatDuration(sec) {
+            const min = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // =========== UI Updates ===========
+        function updateUI() {
+            // Main Screen
+            heartRateDisplayElem.textContent = currentData.heartRate;
+            durationDisplayElem.textContent = "Duración: " + currentData.duration;
+            stepsDisplayElem.textContent = "Pasos: " + currentData.steps;
+            distanceDisplayElem.textContent = "Distancia: " + currentData.distance + " km";
+            speedDisplayElem.textContent = "Velocidad: " + currentData.speed + " km/h";
+            caloriesDisplayElem.textContent = "Calorías: " + currentData.calories;
+            // Fullscreen Minimal
+            fullscreenHeartRate.textContent = currentData.heartRate;
+            fullscreenDuration.textContent = "Duración: " + currentData.duration;
+            // Fullscreen All Data
+            fsdHeartRate.textContent = currentData.heartRate;
+            fsdDuration.textContent = currentData.duration;
+            fsdSteps.textContent = currentData.steps;
+            fsdDistance.textContent = currentData.distance + " km";
+            fsdSpeed.textContent = currentData.speed + " km/h";
+            fsdCalories.textContent = currentData.calories;
+        }
+        function animateHeart(bpm) {
+            if (bpm > 0) {
+                const animationDuration = 60 / bpm;
+                heartIconElem.style.animationDuration = `${animationDuration.toFixed(2)}s`;
+                heartIconElem.classList.add('heartbeat-animation');
+            } else {
+                heartIconElem.classList.remove('heartbeat-animation');
+            }
+        }
+
+        // =========== Fullscreen UI ===========
+        fullscreenBtn.addEventListener('click', enterFullScreen);
+        exitFullscreenBtn.addEventListener('click', exitFullScreen);
+        switchScreenBtn.addEventListener('click', () => {
+            if (fullscreenMode === 'minimal') {
+                fullscreenMinimal.classList.add('hidden');
+                fullscreenAllData.classList.remove('hidden');
+                switchScreenBtn.textContent = 'Ver Minimal';
+                fullscreenMode = 'allData';
+            } else {
+                fullscreenMinimal.classList.remove('hidden');
+                fullscreenAllData.classList.add('hidden');
+                switchScreenBtn.textContent = 'Ver Datos';
+                fullscreenMode = 'minimal';
+            }
+        });
+        function enterFullScreen() {
+            fullscreenContainer.classList.remove('hidden');
+            fullscreenMinimal.classList.remove('hidden');
+            fullscreenAllData.classList.add('hidden');
+            switchScreenBtn.textContent = 'Ver Datos';
+            fullscreenMode = 'minimal';
+            if (document.documentElement.requestFullscreen) {
+                fullscreenContainer.requestFullscreen();
+            }
+        }
+        function exitFullScreen() {
+            fullscreenContainer.classList.add('hidden');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                fullscreenContainer.classList.add('hidden');
+            }
+        });
+        window.addEventListener('keydown', function(e) {
+            if (e.key === "Escape" && !fullscreenContainer.classList.contains('hidden')) {
+                exitFullScreen();
+            }
+        });
+
+        // =========== Reconexión y Desconexión ===========
+        function onDisconnected() {
+            bluetoothStatusElem.textContent = 'Dispositivo desconectado.';
+            bluetoothStatusElem.classList.remove('text-green-400');
+            bluetoothStatusElem.classList.add('text-red-400');
+            connectBluetoothBtn.disabled = false;
+            currentData = {
+                heartRate: '--',
+                duration: '--:--',
+                steps: '--',
+                distance: '--',
+                speed: '--',
+                calories: '--'
+            };
+            updateUI();
+            heartIconElem.classList.remove('heartbeat-animation');
+            stopTimer();
+            if (heartRateCharacteristic) {
+                heartRateCharacteristic.removeEventListener('characteristicvaluechanged', handleHeartRateNotification);
+                heartRateCharacteristic = null;
+            }
+        }
+
+        // =========== Inicializa UI en estado desconectado ===========
+        updateUI();
+        fullscreenHeartRate.textContent = '--';
+        fullscreenDuration.textContent = "Duración: --:--";
+    </script>
+</body>
+</html>
